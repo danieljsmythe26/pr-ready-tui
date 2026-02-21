@@ -1,6 +1,6 @@
 import type { PR, ScoreBreakdown, CICheck } from './types.js';
 
-function scoreCi(checks: CICheck[]): number {
+export function scoreCi(checks: CICheck[]): number {
   if (checks.length === 0) return 15; // No CI = unknown
   const allPassed = checks.every(c => c.conclusion === 'SUCCESS' || c.conclusion === 'NEUTRAL' || c.conclusion === 'SKIPPED');
   if (allPassed) return 30;
@@ -9,7 +9,7 @@ function scoreCi(checks: CICheck[]): number {
   return 15; // Pending
 }
 
-function scoreReviews(reviewDecision: string): number {
+export function scoreReviews(reviewDecision: string): number {
   switch (reviewDecision) {
     case 'APPROVED': return 30;
     case 'CHANGES_REQUESTED': return 0;
@@ -18,7 +18,7 @@ function scoreReviews(reviewDecision: string): number {
   }
 }
 
-function scoreConflicts(mergeable: string): number {
+export function scoreConflicts(mergeable: string): number {
   switch (mergeable) {
     case 'MERGEABLE': return 20;
     case 'CONFLICTING': return 0;
@@ -26,7 +26,7 @@ function scoreConflicts(mergeable: string): number {
   }
 }
 
-function scoreStaleness(updatedAt: string): number {
+export function scoreStaleness(updatedAt: string): number {
   const ageMs = Date.now() - new Date(updatedAt).getTime();
   const ageDays = ageMs / (1000 * 60 * 60 * 24);
   if (ageDays < 1) return 20;
