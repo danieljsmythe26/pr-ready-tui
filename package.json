@@ -1,8 +1,9 @@
 {
   "name": "pr-ready-tui",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "TUI dashboard for GitHub PRs with agent-powered fixes",
+  "bin": "dist/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
