@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { execFile } from 'node:child_process';
+import path from 'node:path';
 import type { PR, Agent, AgentAction, RepoConfig } from '../types.js';
 
 interface UseAgentResult {
@@ -15,7 +16,8 @@ export function useAgent(onComplete?: () => void): UseAgentResult {
   const spawn = useCallback((agent: Agent, repo: RepoConfig, pr: PR, action: AgentAction) => {
     const name = `prt-${agent.id}-${pr.number}`;
     const cmd = agent.command(repo, pr, action);
-    const repoPath = `/home/clawdbot/coding/${repo.repo}`;
+    const baseDir = process.env.PRT_REPOS_DIR || process.cwd();
+    const repoPath = path.join(baseDir, repo.repo);
 
     setRunning(true);
     setSessionName(name);
