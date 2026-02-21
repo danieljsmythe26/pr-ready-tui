@@ -53,6 +53,7 @@ export function StatusBar({ view, hideBots, reviewDone, agentRunning, agentSessi
           <Text dimColor>{'] fix  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">t</Text><Text dimColor>{'] fix types  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">x</Text><Text dimColor>{'] rebase  '}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">o</Text><Text dimColor>{'] open  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">m</Text><Text dimColor>{'] merge'}</Text>
         </Text>
       </Box>

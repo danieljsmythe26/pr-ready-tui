@@ -139,6 +139,12 @@ export function App() {
             'fix'
           );
         }
+      } else if (input === 'o') {
+        // Open in browser
+        if (currentPR) {
+          execFile('gh', ['pr', 'view', String(currentPR.number), '--repo',
+            `${currentPR.repo.owner}/${currentPR.repo.repo}`, '--web'], () => {});
+        }
       } else if (input === 'm') {
         if (currentPR) {
           setView('merge-confirm' as View);
