@@ -6,15 +6,15 @@ const execFileAsync = promisify(execFile);
 
 const MAX_BUFFER = 10 * 1024 * 1024; // 10MB
 
-async function gh<T>(args: string): Promise<T> {
-  const { stdout } = await execFileAsync('gh', args.split(/\s+/), {
+async function gh<T>(args: string[]): Promise<T> {
+  const { stdout } = await execFileAsync('gh', args, {
     maxBuffer: MAX_BUFFER,
   });
   return JSON.parse(stdout);
 }
 
-async function ghRaw(args: string): Promise<string> {
-  const { stdout } = await execFileAsync('gh', args.split(/\s+/), {
+async function ghRaw(args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync('gh', args, {
     maxBuffer: MAX_BUFFER,
   });
   return stdout.trim();
@@ -47,9 +47,13 @@ const PR_FIELDS = [
 ].join(',');
 
 export async function listOpenPRs(repo: RepoConfig): Promise<Omit<PR, 'score' | 'scoreBreakdown'>[]> {
-  const raws = await gh<RawPR[]>(
-    `pr list --repo ${repo.owner}/${repo.repo} --state open --json ${PR_FIELDS} --limit 50`
-  );
+  const raws = await gh<RawPR[]>([
+    'pr', 'list',
+    '--repo', `${repo.owner}/${repo.repo}`,
+    '--state', 'open',
+    '--json', PR_FIELDS,
+    '--limit', '50',
+  ]);
 
   return raws.map(raw => ({
     number: raw.number,
@@ -109,7 +113,9 @@ export async function getReviewComments(repo: RepoConfig, prNumber: number): Pro
       body: string;
       user: { login: string };
       created_at: string;
-    }>>(`api repos/${repo.owner}/${repo.repo}/pulls/${prNumber}/comments`);
+    }>>([
+      'api', `repos/${repo.owner}/${repo.repo}/pulls/${prNumber}/comments`,
+    ]);
 
     return comments.map(c => ({
       path: c.path,
@@ -125,7 +131,11 @@ export async function getReviewComments(repo: RepoConfig, prNumber: number): Pro
 
 export async function getConversationComments(repo: RepoConfig, prNumber: number): Promise<string> {
   try {
-    return await ghRaw(`pr view ${prNumber} --repo ${repo.owner}/${repo.repo} --comments`);
+    return await ghRaw([
+      'pr', 'view', String(prNumber),
+      '--repo', `${repo.owner}/${repo.repo}`,
+      '--comments',
+    ]);
   } catch {
     return '';
   }
