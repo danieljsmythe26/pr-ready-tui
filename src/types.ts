@@ -31,6 +31,8 @@ export interface PR {
   repo: RepoConfig;
   score: number;
   scoreBreakdown: ScoreBreakdown;
+  reviewComments: ReviewComment[];
+  reviewVerdict: string | null;
 }
 
 export interface CICheck {
@@ -55,7 +57,7 @@ export interface ScoreBreakdown {
   total: number;
 }
 
-export type View = 'list' | 'detail' | 'agent-picker';
+export type View = 'list' | 'detail' | 'agent-picker' | 'merge-confirm';
 
 export type AgentAction = 'review' | 'fix' | 'fix-types';
 

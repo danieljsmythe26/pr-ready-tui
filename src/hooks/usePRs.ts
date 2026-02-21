@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { PR } from '../types.js';
 import { REPOS, isBotAuthor } from '../types.js';
-import { listAllOpenPRs } from '../github.js';
+import { listAllOpenPRs, getReviewComments } from '../github.js';
 import { computeScore } from '../scoring.js';
 
 interface UsePRsResult {
@@ -11,6 +11,7 @@ interface UsePRsResult {
   refresh: () => void;
   hideBots: boolean;
   toggleBots: () => void;
+  updatePR: (repoName: string, number: number, patch: Partial<PR>) => void;
 }
 
 export function usePRs(): UsePRsResult {
@@ -24,7 +25,12 @@ export function usePRs(): UsePRsResult {
     setError(null);
     try {
       const { prs: rawPRs, errors } = await listAllOpenPRs(REPOS);
-      const scored: PR[] = rawPRs.map(pr => {
+      // Fetch review comments for all PRs in parallel
+      const withComments = await Promise.all(rawPRs.map(async pr => {
+        const reviewComments = await getReviewComments(pr.repo, pr.number);
+        return { ...pr, reviewComments, reviewVerdict: null as string | null };
+      }));
+      const scored: PR[] = withComments.map(pr => {
         const scoreBreakdown = computeScore(pr);
         return { ...pr, score: scoreBreakdown.total, scoreBreakdown };
       });
@@ -44,6 +50,14 @@ export function usePRs(): UsePRsResult {
     fetchPRs();
   }, [fetchPRs]);
 
+  const updatePR = useCallback((repoName: string, number: number, patch: Partial<PR>) => {
+    setAllPRs(prev => prev.map(pr =>
+      pr.repo.repo === repoName && pr.number === number
+        ? { ...pr, ...patch }
+        : pr
+    ));
+  }, []);
+
   const visiblePRs = hideBots
     ? allPRs.filter(pr => !isBotAuthor(pr.author))
     : allPRs;
@@ -55,5 +69,6 @@ export function usePRs(): UsePRsResult {
     refresh: fetchPRs,
     hideBots,
     toggleBots: () => setHideBots(v => !v),
+    updatePR,
   };
 }

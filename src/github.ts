@@ -74,6 +74,8 @@ export async function listOpenPRs(repo: RepoConfig): Promise<Omit<PR, 'score' | 
       status: c.status,
     })),
     repo,
+    reviewComments: [],
+    reviewVerdict: null,
   }));
 }
 
