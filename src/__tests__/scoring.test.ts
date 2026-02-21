@@ -23,6 +23,8 @@ const basePr = (overrides: Partial<Omit<PR, 'score' | 'scoreBreakdown'>> = {}): 
   reviewDecision: 'APPROVED',
   statusCheckRollup: [],
   repo: baseRepo,
+  reviewComments: [],
+  reviewVerdict: null,
   ...overrides,
 });
 
