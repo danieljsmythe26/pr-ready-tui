@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Box, Text, useApp, useInput } from 'ink';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import { execFile } from 'node:child_process';
 import type { View, AgentAction } from './types.js';
 import { AGENTS } from './types.js';
@@ -13,11 +13,31 @@ import { AgentPicker } from './components/AgentPicker.js';
 import { MergeConfirm } from './components/MergeConfirm.js';
 import { StatusBar } from './components/StatusBar.js';
 
-const BOX_WIDTH = 90;
+const MIN_WIDTH = 60;
+const MAX_WIDTH = 140;
 const DETAIL_VIEWPORT = 20;
+
+function useTerminalWidth(): number {
+  const { stdout } = useStdout();
+  const [width, setWidth] = useState(() =>
+    Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, stdout?.columns ?? 90))
+  );
+
+  useEffect(() => {
+    if (!stdout) return;
+    const onResize = () => {
+      setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, stdout.columns)));
+    };
+    stdout.on('resize', onResize);
+    return () => { stdout.off('resize', onResize); };
+  }, [stdout]);
+
+  return width;
+}
 
 export function App() {
   const { exit } = useApp();
+  const BOX_WIDTH = useTerminalWidth();
   const { prs, loading, error, refresh, hideBots, toggleBots, updatePR } = usePRs();
 
   const [view, setView] = useState<View>('list');

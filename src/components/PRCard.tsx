@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'ink';
+import { Box, Text } from 'ink';
 import type { PR } from '../types.js';
 
 interface PRCardProps {
@@ -47,21 +47,33 @@ export function PRCard({ pr, selected, boxWidth }: PRCardProps) {
   const review = reviewIcon(pr.reviewDecision);
   const merge = mergeIcon(pr.mergeable);
   const author = pr.author.slice(0, 12).padEnd(12);
-  const indicators = `${ci} ${review} ${merge}`;
   // score(3) + space(1) + repo(12) + space(1) + #num(5) + space(1) + author(12) + space(1) + indicators(5) = 41
   const metaLen = 3 + 1 + 12 + 1 + 5 + 1 + 12 + 1 + 5;
   const titleMax = innerWidth - metaLen - 4; // 4 for padding/borders
   const title = pr.title.length > titleMax ? pr.title.slice(0, titleMax - 1) + '~' : pr.title.padEnd(titleMax);
 
-  const prefix = selected ? '> ' : '  ';
+  const prefix = selected ? '▌ ' : '  ';
+
+  // Selected row: inverted background (white bg, black text) like lazygit
+  if (selected) {
+    const rowContent = `${prefix}${scoreStr} ${repoShort} #${String(pr.number).padEnd(4)} ${title} ${author} ${ci} ${review} ${merge}`;
+    const padded = rowContent.length < innerWidth
+      ? rowContent + ' '.repeat(innerWidth - rowContent.length)
+      : rowContent.slice(0, innerWidth);
+
+    return (
+      <Text>
+        <Text dimColor>{'│'}</Text>
+        <Text backgroundColor="white" color="black" bold>{padded}</Text>
+        <Text dimColor>{'│'}</Text>
+      </Text>
+    );
+  }
 
   return (
     <Text>
       <Text dimColor>{'│'}</Text>
-      {selected
-        ? <Text color="cyan" bold>{prefix}</Text>
-        : <Text>{prefix}</Text>
-      }
+      <Text>{prefix}</Text>
       <Text color={scoreColor(pr.score)} bold>{scoreStr}</Text>
       <Text> </Text>
       <Text dimColor>{repoShort}</Text>
