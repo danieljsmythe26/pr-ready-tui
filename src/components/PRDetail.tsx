@@ -32,8 +32,11 @@ function line(innerWidth: number, left: string, content: React.ReactNode): React
 }
 
 export function PRDetail({ pr, boxWidth, scrollOffset }: PRDetailProps) {
+  if (!pr) {
+    return <Text color="red">No PR selected</Text>;
+  }
   const innerWidth = boxWidth - 2;
-  const b = pr.scoreBreakdown;
+  const b = pr.scoreBreakdown ?? { ci: 0, reviews: 0, conflicts: 0, staleness: 0, total: 0 };
 
   // Build all lines as an array, then slice for scrolling
   const lines: React.ReactElement[] = [];
@@ -98,7 +101,8 @@ export function PRDetail({ pr, boxWidth, scrollOffset }: PRDetailProps) {
   lines.push(<Text key="s3" dimColor>{'│' + ' '.repeat(innerWidth) + '│'}</Text>);
 
   // CI Checks
-  if (pr.statusCheckRollup.length > 0) {
+  const checks = pr.statusCheckRollup ?? [];
+  if (checks.length > 0) {
     const ciHeader = 'CI Checks:';
     lines.push(
       <Text key="ci-header">
@@ -107,19 +111,19 @@ export function PRDetail({ pr, boxWidth, scrollOffset }: PRDetailProps) {
         <Text dimColor>{pad(ciHeader, innerWidth) + '│'}</Text>
       </Text>
     );
-    pr.statusCheckRollup.slice(0, 10).forEach((check, i) => {
-      const checkText = `  ${ciStatusIcon(check.conclusion)} ${check.name.slice(0, innerWidth - 10)}`;
+    checks.filter(c => c.name).slice(0, 10).forEach((check, i) => {
+      const checkText = `  ${ciStatusIcon(check.conclusion)} ${(check.name ?? '').slice(0, innerWidth - 10)}`;
       lines.push(
         <Text key={`ci-${i}`}>
           <Text dimColor>{'│    '}</Text>
           <Text color={ciStatusColor(check.conclusion)}>{ciStatusIcon(check.conclusion)}</Text>
-          <Text>{' '}{check.name.slice(0, innerWidth - 10)}</Text>
+          <Text>{' '}{(check.name ?? 'unknown').slice(0, innerWidth - 10)}</Text>
           <Text dimColor>{pad(checkText, innerWidth, 4) + '│'}</Text>
         </Text>
       );
     });
-    if (pr.statusCheckRollup.length > 10) {
-      const moreText = `... and ${pr.statusCheckRollup.length - 10} more`;
+    if (checks.length > 10) {
+      const moreText = `... and ${checks.length - 10} more`;
       lines.push(
         <Text key="ci-more">
           <Text dimColor>{'│    '}</Text>
@@ -132,7 +136,8 @@ export function PRDetail({ pr, boxWidth, scrollOffset }: PRDetailProps) {
   }
 
   // Review Comments
-  if (pr.reviewComments.length > 0) {
+  const comments = pr.reviewComments ?? [];
+  if (comments.length > 0) {
     const rcHeader = `Review Comments (${pr.reviewComments.length}):`;
     lines.push(
       <Text key="rc-header">
@@ -143,7 +148,7 @@ export function PRDetail({ pr, boxWidth, scrollOffset }: PRDetailProps) {
     );
     lines.push(<Text key="s5" dimColor>{'│' + ' '.repeat(innerWidth) + '│'}</Text>);
 
-    pr.reviewComments.forEach((comment, i) => {
+    comments.forEach((comment, i) => {
       // File path + author
       const headerText = `${comment.author} on ${comment.path}${comment.line ? `:${comment.line}` : ''}`;
       lines.push(
@@ -180,7 +185,7 @@ export function PRDetail({ pr, boxWidth, scrollOffset }: PRDetailProps) {
       }
 
       // Separator between comments
-      if (i < pr.reviewComments.length - 1) {
+      if (i < comments.length - 1) {
         lines.push(<Text key={`rc-sep-${i}`} dimColor>{'│    ' + '·'.repeat(innerWidth - 8) + '    │'}</Text>);
       }
     });
