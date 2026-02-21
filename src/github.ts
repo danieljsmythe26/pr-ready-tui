@@ -7,16 +7,18 @@ const execFileAsync = promisify(execFile);
 const MAX_BUFFER = 10 * 1024 * 1024; // 10MB
 
 async function gh<T>(args: string[]): Promise<T> {
-  const { stdout } = await execFileAsync('gh', args, {
+  const result = await execFileAsync('gh', args, {
     maxBuffer: MAX_BUFFER,
   });
+  const stdout = typeof result === 'string' ? result : result.stdout;
   return JSON.parse(stdout);
 }
 
 async function ghRaw(args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync('gh', args, {
+  const result = await execFileAsync('gh', args, {
     maxBuffer: MAX_BUFFER,
   });
+  const stdout = typeof result === 'string' ? result : result.stdout;
   return stdout.trim();
 }
 
