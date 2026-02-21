@@ -4,7 +4,12 @@
   "description": "TUI dashboard for GitHub PRs with agent-powered fixes",
   "bin": "dist/index.js",
   "main": "dist/index.js",
+  "type": "module",
   "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,7 +25,6 @@
   "homepage": "https://github.com/danieljsmythe26/pr-ready-tui#readme",
   "dependencies": {
     "@clack/prompts": "^1.0.1",
-    "@types/react": "^19.2.14",
     "chalk": "^5.6.2",
     "chokidar": "^5.0.0",
     "commander": "^14.0.3",
