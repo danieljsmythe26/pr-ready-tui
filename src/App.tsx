@@ -111,8 +111,8 @@ export function App() {
             {
               id: 'rebase',
               name: 'Git Rebase',
-              command: (repo, pr) =>
-                `cd /home/clawdbot/coding/${repo.repo} && git fetch origin && git checkout ${pr.headRefName} && git rebase origin/${pr.baseRefName}`,
+              command: (_repo, pr) =>
+                `git fetch origin && git checkout ${pr.headRefName} && git rebase origin/${pr.baseRefName}`,
             },
             currentPR.repo,
             currentPR,

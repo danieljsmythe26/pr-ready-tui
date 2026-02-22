@@ -21,7 +21,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       return (
         <Box flexDirection="column">
           <Text color="red">Something went wrong: {this.state.error.message}</Text>
-          <Text>Press q to quit, r to retry</Text>
+          <Text>Press Ctrl+C to exit.</Text>
         </Box>
       );
     }
