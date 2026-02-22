@@ -121,7 +121,7 @@ export async function getReviewComments(repo: RepoConfig, prNumber: number): Pro
       'api', `repos/${repo.owner}/${repo.repo}/pulls/${prNumber}/comments`,
     ]);
 
-    return comments.map(c => ({
+    return comments.flat().map(c => ({
       path: c.path,
       line: c.line ?? c.original_line,
       body: c.body,
