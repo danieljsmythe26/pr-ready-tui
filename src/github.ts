@@ -96,8 +96,7 @@ export async function listOpenPRs(repo: RepoConfig): Promise<Omit<PR, 'score' | 
         const state = (c.state ?? '').toUpperCase();
         const conclusion = state === 'SUCCESS' ? 'SUCCESS'
           : state === 'ERROR' || state === 'FAILURE' ? 'FAILURE'
-          : state === 'PENDING' ? null
-          : null;
+          : null; // PENDING, EXPECTED, or unknown → pending
         return { name: c.context ?? 'unknown', conclusion, status: state };
       }
       return { name: c.name ?? 'unknown', conclusion: c.conclusion ?? null, status: c.status ?? '' };
