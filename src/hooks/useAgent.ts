@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { PR, Agent, AgentAction, RepoConfig } from '../types.js';
+import { CODING_DIR } from '../types.js';
 
 interface UseAgentResult {
   running: boolean;
@@ -20,10 +21,17 @@ export function useAgent(onComplete?: () => void): UseAgentResult {
     const name = `prt-${agent.id}-${pr.number}`;
     const cmd = agent.command(repo, pr, action);
 
-    // Use localPath if configured, otherwise fall back to PRT_REPOS_DIR/repo.repo
+    // Use localPath override if set, otherwise resolve from CODING_DIR
+    const baseDir = path.resolve(CODING_DIR);
     const repoPath = repo.localPath
       ? path.resolve(repo.localPath)
-      : path.resolve(process.env.PRT_REPOS_DIR || process.cwd(), repo.repo);
+      : path.resolve(baseDir, repo.repo);
+
+    // Path traversal guard on fallback path
+    if (!repo.localPath && !repoPath.startsWith(baseDir + path.sep)) {
+      setError(`Invalid repo path: ${repo.repo} escapes base directory`);
+      return;
+    }
 
     if (!existsSync(repoPath)) {
       setError(`Repo directory not found: ${repoPath}. Set localPath in REPOS config or PRT_REPOS_DIR env var.`);
