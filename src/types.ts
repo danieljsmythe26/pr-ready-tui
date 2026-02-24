@@ -86,12 +86,13 @@ export const AGENTS: Agent[] = [
       const repoName = escapeForDoubleQuotes(repo.repo);
       const branch = escapeForDoubleQuotes(pr.headRefName);
       if (action === 'review') {
-        return `claude -p "Run /pr-readiness ${pr.number} on ${owner}/${repoName}. Check out the PR branch ${branch} first."`;
+        return `unset CLAUDECODE && claude -p "Run /pr-readiness ${pr.number} on ${owner}/${repoName}. Check out the PR branch ${branch} first."`;
       }
       if (action === 'fix') {
-        return `claude -p "Fix the issues found in PR #${pr.number} on ${owner}/${repoName}. Check out branch ${branch}, address review comments, commit and push."`;
+        return `unset CLAUDECODE && claude -p "Fix the issues found in PR #${pr.number} on ${owner}/${repoName}. Check out branch ${branch}, address review comments, commit and push."`;
       }
-      return `claude -p "Check out branch ${branch} in ${owner}/${repoName}, run npm run typecheck, and fix any TypeScript errors. Commit and push."`;
+      return `unset CLAUDECODE && claude -p "Check out branch ${branch} in ${owner}/${repoName}, run npm run typecheck, and fix any TypeScript errors. Commit and push."`;
+
     },
   },
   {
