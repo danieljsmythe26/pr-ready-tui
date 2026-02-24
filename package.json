@@ -2,13 +2,17 @@
   "name": "pr-ready-tui",
   "version": "1.0.0",
   "description": "TUI dashboard for GitHub PRs with agent-powered fixes",
-  "bin": "dist/index.js",
+  "bin": {
+    "pr-ready": "dist/cli.js",
+    "pr-ready-tui": "dist/index.js"
+  },
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.tsx",
+    "cli": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
