@@ -6,12 +6,14 @@ import type { PR, Agent, AgentAction, RepoConfig } from '../types.js';
 interface UseAgentResult {
   running: boolean;
   sessionName: string | null;
+  error: string | null;
   spawn: (agent: Agent, repo: RepoConfig, pr: PR, action: AgentAction) => void;
 }
 
 export function useAgent(onComplete?: () => void): UseAgentResult {
   const [running, setRunning] = useState(false);
   const [sessionName, setSessionName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const spawn = useCallback((agent: Agent, repo: RepoConfig, pr: PR, action: AgentAction) => {
     const name = `prt-${agent.id}-${pr.number}`;
@@ -21,6 +23,7 @@ export function useAgent(onComplete?: () => void): UseAgentResult {
 
     setRunning(true);
     setSessionName(name);
+    setError(null);
 
     // Spawn in a tmux session — use bash -lc so the full command string
     // is interpreted by a shell (handles spaces, quotes, pipes, etc.)
@@ -30,6 +33,7 @@ export function useAgent(onComplete?: () => void): UseAgentResult {
       if (err) {
         setRunning(false);
         setSessionName(null);
+        setError(err.message);
         return;
       }
 
@@ -48,5 +52,5 @@ export function useAgent(onComplete?: () => void): UseAgentResult {
     });
   }, [onComplete]);
 
-  return { running, sessionName, spawn };
+  return { running, sessionName, error, spawn };
 }

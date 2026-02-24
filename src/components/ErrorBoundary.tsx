@@ -16,6 +16,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     return { error };
   }
 
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    process.stderr.write(`[ErrorBoundary] ${error.message}\n${info.componentStack ?? ''}\n`);
+  }
+
   render(): React.ReactNode {
     if (this.state.error) {
       return (

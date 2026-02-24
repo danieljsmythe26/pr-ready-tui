@@ -10,16 +10,14 @@ async function gh<T>(args: string[]): Promise<T> {
   const result = await execFileAsync('gh', args, {
     maxBuffer: MAX_BUFFER,
   });
-  const stdout = typeof result === 'string' ? result : result.stdout;
-  return JSON.parse(stdout);
+  return JSON.parse(result.stdout);
 }
 
 async function ghRaw(args: string[]): Promise<string> {
   const result = await execFileAsync('gh', args, {
     maxBuffer: MAX_BUFFER,
   });
-  const stdout = typeof result === 'string' ? result : result.stdout;
-  return stdout.trim();
+  return result.stdout.trim();
 }
 
 interface RawPR {
@@ -118,10 +116,10 @@ export async function getReviewComments(repo: RepoConfig, prNumber: number): Pro
       user: { login: string };
       created_at: string;
     }>>([
-      'api', `repos/${repo.owner}/${repo.repo}/pulls/${prNumber}/comments`,
+      'api', '--paginate', '--slurp', `repos/${repo.owner}/${repo.repo}/pulls/${prNumber}/comments`,
     ]);
 
-    return comments.flat().map(c => ({
+    return comments.map(c => ({
       path: c.path,
       line: c.line ?? c.original_line,
       body: c.body,
