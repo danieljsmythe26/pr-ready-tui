@@ -1,12 +1,15 @@
 export interface RepoConfig {
   owner: string;
   repo: string;
+  localPath?: string;
 }
 
+const CODING_DIR = process.env.PRT_REPOS_DIR || `${process.env.HOME}/Documents/coding`;
+
 export const REPOS: RepoConfig[] = [
-  { owner: 'danieljsmythe26', repo: 'ai-estimates-app' },
-  { owner: 'danieljsmythe26', repo: 'design-build-automation' },
-  { owner: 'danieljsmythe26', repo: 'ashton-paul' },
+  { owner: 'danieljsmythe26', repo: 'ai-estimates-app', localPath: `${CODING_DIR}/ai-estimates-app` },
+  { owner: 'danieljsmythe26', repo: 'design-build-automation', localPath: `${CODING_DIR}/design-build-automation` },
+  { owner: 'danieljsmythe26', repo: 'ashton-paul', localPath: `${CODING_DIR}/ashton-paul` },
 ];
 
 export interface PR {
