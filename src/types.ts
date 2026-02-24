@@ -1,7 +1,12 @@
 export interface RepoConfig {
   owner: string;
   repo: string;
+  localPath?: string;
 }
+
+import { homedir } from 'node:os';
+
+export const CODING_DIR = process.env.PRT_REPOS_DIR || `${homedir()}/Documents/coding`;
 
 export const REPOS: RepoConfig[] = [
   { owner: 'danieljsmythe26', repo: 'ai-estimates-app' },
