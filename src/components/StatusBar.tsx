@@ -8,11 +8,18 @@ interface StatusBarProps {
   reviewDone: boolean;
   agentRunning: boolean;
   agentSession: string | null;
+  agentError: string | null;
   boxWidth: number;
 }
 
-export function StatusBar({ view, hideBots, reviewDone, agentRunning, agentSession, boxWidth }: StatusBarProps) {
-  const innerWidth = boxWidth - 2;
+export function StatusBar({ view, hideBots, reviewDone, agentRunning, agentSession, agentError, boxWidth }: StatusBarProps) {
+  if (agentError) {
+    return (
+      <Box marginTop={1}>
+        <Text color="red">Agent failed: {agentError}</Text>
+      </Box>
+    );
+  }
 
   if (agentRunning && agentSession) {
     return (

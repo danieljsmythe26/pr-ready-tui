@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import { execFile } from 'node:child_process';
 import type { View, AgentAction } from './types.js';
@@ -15,6 +15,7 @@ import { StatusBar } from './components/StatusBar.js';
 
 const BOX_WIDTH = 90;
 const DETAIL_VIEWPORT = 20;
+const MAX_DETAIL_LINES = 100;
 
 export function App() {
   const { exit } = useApp();
@@ -29,16 +30,19 @@ export function App() {
   const { scrollOffset, scrollUp, scrollDown, resetScroll } = useScroll();
 
   // Clamp selectedPR to valid range whenever prs changes
+  useEffect(() => {
+    if (prs.length > 0 && selectedPR >= prs.length) {
+      setSelectedPR(prs.length - 1);
+    }
+  }, [prs.length, selectedPR]);
+
   const clampedIndex = prs.length === 0 ? 0 : Math.min(selectedPR, prs.length - 1);
-  if (clampedIndex !== selectedPR) {
-    setSelectedPR(clampedIndex);
-  }
 
   const handleAgentComplete = useCallback(() => {
     refresh();
   }, [refresh]);
 
-  const { running: agentRunning, sessionName: agentSession, spawn } = useAgent(handleAgentComplete);
+  const { running: agentRunning, sessionName: agentSession, error: agentError, spawn } = useAgent(handleAgentComplete);
 
   const isTTY = process.stdin.isTTY ?? false;
 
@@ -49,7 +53,7 @@ export function App() {
     setMergeStatus('Merging...');
     const args = ['pr', 'merge', String(currentPR.number), '--repo',
       `${currentPR.repo.owner}/${currentPR.repo.repo}`, '--squash', '--delete-branch'];
-    execFile('gh', args, (err, stdout, stderr) => {
+    execFile('gh', args, { timeout: 30_000 }, (err, stdout, stderr) => {
       if (err) {
         setMergeStatus(`Failed: ${stderr || err.message}`);
         setTimeout(() => setMergeStatus(null), 5000);
@@ -72,9 +76,9 @@ export function App() {
     }
 
     if (view === 'list') {
-      if (key.upArrow) {
+      if (key.upArrow && prs.length > 0) {
         setSelectedPR(i => Math.max(0, i - 1));
-      } else if (key.downArrow) {
+      } else if (key.downArrow && prs.length > 0) {
         setSelectedPR(i => Math.min(prs.length - 1, i + 1));
       } else if (key.return && prs.length > 0) {
         resetScroll();
@@ -91,7 +95,7 @@ export function App() {
       } else if (key.upArrow) {
         scrollUp();
       } else if (key.downArrow) {
-        scrollDown(50, DETAIL_VIEWPORT); // 50 is approx max lines
+        scrollDown(MAX_DETAIL_LINES, DETAIL_VIEWPORT);
       } else if (input === 'v') {
         setAgentAction('review');
         setSelectedAgent(0);
@@ -121,7 +125,7 @@ export function App() {
         }
       } else if (input === 'm') {
         if (currentPR) {
-          setView('merge-confirm' as View);
+          setView('merge-confirm');
         }
       }
     } else if (view === 'agent-picker') {
@@ -132,7 +136,8 @@ export function App() {
       } else if (key.downArrow) {
         setSelectedAgent(i => Math.min(AGENTS.length - 1, i + 1));
       } else if (key.return) {
-        const pr = prs[selectedPR];
+        const clampedIdx = Math.min(Math.max(selectedPR, 0), prs.length - 1);
+        const pr = prs[clampedIdx];
         const agent = AGENTS[selectedAgent];
         if (pr && agent) {
           spawn(agent, pr.repo, pr, agentAction);
@@ -143,7 +148,7 @@ export function App() {
           setView('detail');
         }
       }
-    } else if ((view as string) === 'merge-confirm') {
+    } else if (view === 'merge-confirm') {
       if (input === 'y') {
         doMerge();
         setView('detail');
@@ -173,7 +178,7 @@ export function App() {
         <AgentPicker action={agentAction} selectedIndex={selectedAgent} boxWidth={BOX_WIDTH} />
       )}
 
-      {(view as string) === 'merge-confirm' && currentPR && (
+      {view === 'merge-confirm' && currentPR && (
         <MergeConfirm pr={currentPR} boxWidth={BOX_WIDTH} />
       )}
 
@@ -195,6 +200,7 @@ export function App() {
         reviewDone={reviewDone}
         agentRunning={agentRunning}
         agentSession={agentSession}
+        agentError={agentError}
         boxWidth={BOX_WIDTH}
       />
     </Box>

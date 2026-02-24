@@ -67,57 +67,74 @@ export interface Agent {
   command: (repo: RepoConfig, pr: PR, action: AgentAction) => string;
 }
 
+/** Escape a string for safe interpolation inside a double-quoted shell argument. */
+function escapeForDoubleQuotes(s: string): string {
+  return s.replace(/[$`\\"!]/g, '\\$&');
+}
+
 export const AGENTS: Agent[] = [
   {
     id: 'claude-code',
     name: 'Claude Code',
     command: (repo, pr, action) => {
+      const owner = escapeForDoubleQuotes(repo.owner);
+      const repoName = escapeForDoubleQuotes(repo.repo);
+      const branch = escapeForDoubleQuotes(pr.headRefName);
       if (action === 'review') {
-        return `claude -p "Run /pr-readiness ${pr.number} on ${repo.owner}/${repo.repo}. Check out the PR branch ${pr.headRefName} first."`;
+        return `claude -p "Run /pr-readiness ${pr.number} on ${owner}/${repoName}. Check out the PR branch ${branch} first."`;
       }
       if (action === 'fix') {
-        return `claude -p "Fix the issues found in PR #${pr.number} on ${repo.owner}/${repo.repo}. Check out branch ${pr.headRefName}, address review comments, commit and push."`;
+        return `claude -p "Fix the issues found in PR #${pr.number} on ${owner}/${repoName}. Check out branch ${branch}, address review comments, commit and push."`;
       }
-      return `claude -p "Check out branch ${pr.headRefName} in ${repo.owner}/${repo.repo}, run npm run typecheck, and fix any TypeScript errors. Commit and push."`;
+      return `claude -p "Check out branch ${branch} in ${owner}/${repoName}, run npm run typecheck, and fix any TypeScript errors. Commit and push."`;
     },
   },
   {
     id: 'codex',
     name: 'Codex',
     command: (repo, pr, action) => {
+      const owner = escapeForDoubleQuotes(repo.owner);
+      const repoName = escapeForDoubleQuotes(repo.repo);
+      const branch = escapeForDoubleQuotes(pr.headRefName);
       if (action === 'review') {
-        return `codex -a full-auto "Review PR #${pr.number} on ${repo.owner}/${repo.repo}. Run the pr-readiness checklist."`;
+        return `codex -a full-auto "Review PR #${pr.number} on ${owner}/${repoName}. Run the pr-readiness checklist."`;
       }
       if (action === 'fix') {
-        return `codex -a full-auto "Fix the issues in PR #${pr.number} on ${repo.owner}/${repo.repo}. Check out ${pr.headRefName}, fix review comments, commit and push."`;
+        return `codex -a full-auto "Fix the issues in PR #${pr.number} on ${owner}/${repoName}. Check out ${branch}, fix review comments, commit and push."`;
       }
-      return `codex -a full-auto "Check out ${pr.headRefName} in ${repo.owner}/${repo.repo}, run npm run typecheck, fix errors, commit and push."`;
+      return `codex -a full-auto "Check out ${branch} in ${owner}/${repoName}, run npm run typecheck, fix errors, commit and push."`;
     },
   },
   {
     id: 'copilot',
     name: 'GitHub Copilot',
     command: (repo, pr, action) => {
+      const owner = escapeForDoubleQuotes(repo.owner);
+      const repoName = escapeForDoubleQuotes(repo.repo);
+      const branch = escapeForDoubleQuotes(pr.headRefName);
       if (action === 'review') {
-        return `gh copilot suggest "Review PR #${pr.number} on ${repo.owner}/${repo.repo}"`;
+        return `gh copilot suggest "Review PR #${pr.number} on ${owner}/${repoName}"`;
       }
       if (action === 'fix') {
-        return `gh copilot suggest "Fix issues in PR #${pr.number} on ${repo.owner}/${repo.repo}"`;
+        return `gh copilot suggest "Fix issues in PR #${pr.number} on ${owner}/${repoName}"`;
       }
-      return `gh copilot suggest "Fix TypeScript errors on branch ${pr.headRefName} in ${repo.owner}/${repo.repo}"`;
+      return `gh copilot suggest "Fix TypeScript errors on branch ${branch} in ${owner}/${repoName}"`;
     },
   },
   {
     id: 'amp',
     name: 'Amp',
     command: (repo, pr, action) => {
+      const owner = escapeForDoubleQuotes(repo.owner);
+      const repoName = escapeForDoubleQuotes(repo.repo);
+      const branch = escapeForDoubleQuotes(pr.headRefName);
       if (action === 'review') {
-        return `amp "Review PR #${pr.number} on ${repo.owner}/${repo.repo}. Run the pr-readiness checklist."`;
+        return `amp "Review PR #${pr.number} on ${owner}/${repoName}. Run the pr-readiness checklist."`;
       }
       if (action === 'fix') {
-        return `amp "Fix the issues in PR #${pr.number} on ${repo.owner}/${repo.repo}. Check out ${pr.headRefName}, fix review comments, commit and push."`;
+        return `amp "Fix the issues in PR #${pr.number} on ${owner}/${repoName}. Check out ${branch}, fix review comments, commit and push."`;
       }
-      return `amp "Check out ${pr.headRefName} in ${repo.owner}/${repo.repo}, run npm run typecheck, fix errors, commit and push."`;
+      return `amp "Check out ${branch} in ${owner}/${repoName}, run npm run typecheck, fix errors, commit and push."`;
     },
   },
 ];

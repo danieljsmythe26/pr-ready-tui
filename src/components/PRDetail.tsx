@@ -26,11 +26,6 @@ function pad(text: string, innerWidth: number, leftPad: number = 2): string {
   return ' '.repeat(Math.max(1, remaining));
 }
 
-function line(innerWidth: number, left: string, content: React.ReactNode): React.ReactElement {
-  // Helper not used directly — we'll just use pad() inline
-  return <Text>{content}</Text>;
-}
-
 export function PRDetail({ pr, boxWidth, scrollOffset }: PRDetailProps) {
   if (!pr) {
     return <Text color="red">No PR selected</Text>;

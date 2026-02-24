@@ -3,7 +3,20 @@ import type { RepoConfig } from '../types.js';
 
 type ExecFileCallback = (error: NodeJS.ErrnoException | null, stdout: string, stderr: string) => void;
 
-const childProcessMock = vi.hoisted(() => ({ execFile: vi.fn() }));
+const childProcessMock = vi.hoisted(() => {
+  const fn = vi.fn();
+  // Add the custom promisify symbol so promisify(execFile) returns { stdout, stderr }
+  // like the real Node.js API, instead of resolving with just the first callback arg.
+  const customSymbol = Symbol.for('nodejs.util.promisify.custom');
+  (fn as unknown as Record<symbol, unknown>)[customSymbol] = (...args: unknown[]) =>
+    new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      fn(...args, (err: Error | null, stdout: string, stderr: string) => {
+        if (err) reject(err);
+        else resolve({ stdout, stderr });
+      });
+    });
+  return { execFile: fn };
+});
 
 vi.mock('node:child_process', () => childProcessMock);
 
