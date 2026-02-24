@@ -19,7 +19,11 @@ export function useAgent(onComplete?: () => void): UseAgentResult {
     const name = `prt-${agent.id}-${pr.number}`;
     const cmd = agent.command(repo, pr, action);
     const baseDir = process.env.PRT_REPOS_DIR || process.cwd();
-    const repoPath = path.join(baseDir, repo.repo);
+    const repoPath = path.resolve(baseDir, repo.repo);
+    if (!repoPath.startsWith(path.resolve(baseDir))) {
+      setError(`Invalid repo path: ${repo.repo} escapes base directory`);
+      return;
+    }
 
     setRunning(true);
     setSessionName(name);
