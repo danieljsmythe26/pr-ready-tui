@@ -37,7 +37,16 @@ interface RawPR {
   updatedAt: string;
   isDraft: boolean;
   reviewDecision: string;
-  statusCheckRollup: Array<{ name: string; conclusion: string | null; status: string }>;
+  statusCheckRollup: Array<{
+    __typename?: string;
+    // CheckRun fields
+    name?: string;
+    conclusion?: string | null;
+    status?: string;
+    // StatusContext fields
+    context?: string;
+    state?: string;
+  }>;
 }
 
 const PR_FIELDS = [
@@ -45,6 +54,15 @@ const PR_FIELDS = [
   'additions', 'deletions', 'changedFiles', 'labels', 'author', 'url',
   'createdAt', 'updatedAt', 'isDraft', 'reviewDecision', 'statusCheckRollup',
 ].join(',');
+
+/** Deduplicate CI checks by name, keeping the latest (last) entry for each. */
+function deduplicateChecks(checks: CICheck[]): CICheck[] {
+  const byName = new Map<string, CICheck>();
+  for (const check of checks) {
+    byName.set(check.name, check);
+  }
+  return Array.from(byName.values());
+}
 
 export async function listOpenPRs(repo: RepoConfig): Promise<Omit<PR, 'score' | 'scoreBreakdown'>[]> {
   const raws = await gh<RawPR[]>([
@@ -72,10 +90,17 @@ export async function listOpenPRs(repo: RepoConfig): Promise<Omit<PR, 'score' | 
     updatedAt: raw.updatedAt,
     isDraft: raw.isDraft,
     reviewDecision: raw.reviewDecision ?? '',
-    statusCheckRollup: (raw.statusCheckRollup ?? []).map(c => ({
-      name: c.name,
-      conclusion: c.conclusion,
-      status: c.status,
+    statusCheckRollup: deduplicateChecks((raw.statusCheckRollup ?? []).map(c => {
+      if (c.__typename === 'StatusContext' || (!c.name && c.context)) {
+        // StatusContext: map context → name, state → conclusion
+        const state = (c.state ?? '').toUpperCase();
+        const conclusion = state === 'SUCCESS' ? 'SUCCESS'
+          : state === 'ERROR' || state === 'FAILURE' ? 'FAILURE'
+          : state === 'PENDING' ? null
+          : null;
+        return { name: c.context ?? 'unknown', conclusion, status: state };
+      }
+      return { name: c.name ?? 'unknown', conclusion: c.conclusion ?? null, status: c.status ?? '' };
     })),
     repo,
     reviewComments: [],
