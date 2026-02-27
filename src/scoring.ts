@@ -2,11 +2,17 @@ import type { PR, ScoreBreakdown, CICheck } from './types.js';
 
 export function scoreCi(checks: CICheck[]): number {
   if (checks.length === 0) return 15; // No CI = unknown
-  const allPassed = checks.every(c => c.conclusion === 'SUCCESS' || c.conclusion === 'NEUTRAL' || c.conclusion === 'SKIPPED');
-  if (allPassed) return 30;
-  const anyFailed = checks.some(c => c.conclusion === 'FAILURE' || c.conclusion === 'CANCELLED' || c.conclusion === 'TIMED_OUT' || c.conclusion === 'ACTION_REQUIRED');
-  if (anyFailed) return 0;
-  return 15; // Pending
+  let sum = 0;
+  for (const c of checks) {
+    if (c.conclusion === 'SUCCESS' || c.conclusion === 'NEUTRAL' || c.conclusion === 'SKIPPED') {
+      sum += 1;
+    } else if (c.conclusion === 'FAILURE' || c.conclusion === 'CANCELLED' || c.conclusion === 'TIMED_OUT' || c.conclusion === 'ACTION_REQUIRED') {
+      sum += 0;
+    } else {
+      sum += 0.5; // Pending
+    }
+  }
+  return Math.round(30 * sum / checks.length);
 }
 
 export function scoreReviews(reviewDecision: string): number {

@@ -42,7 +42,10 @@ export function StatusBar({ view, hideBots, reviewDone, agentRunning, agentSessi
           <Text dimColor>{'['}</Text><Text color="cyan">b</Text><Text dimColor>{'] '}</Text>
           <Text color={hideBots ? 'yellow' : 'green'}>{hideBots ? 'show' : 'hide'}</Text>
           <Text dimColor>{' bots  '}</Text>
-          <Text dimColor>{'['}</Text><Text color="cyan">Enter</Text><Text dimColor>{'] detail'}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">s</Text><Text dimColor>{'] sort  '}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">/</Text><Text dimColor>{'] filter  '}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">Enter</Text><Text dimColor>{'] detail  '}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">?</Text><Text dimColor>{'] help'}</Text>
         </Text>
       </Box>
     );
@@ -55,12 +58,9 @@ export function StatusBar({ view, hideBots, reviewDone, agentRunning, agentSessi
           <Text dimColor>{'['}</Text><Text color="cyan">Esc</Text><Text dimColor>{'] back  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">↑↓</Text><Text dimColor>{'] scroll  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">v</Text><Text dimColor>{'] review  '}</Text>
-          <Text dimColor>{'['}</Text>
-          <Text color={reviewDone ? 'cyan' : 'gray'}>f</Text>
-          <Text dimColor>{'] fix  '}</Text>
-          <Text dimColor>{'['}</Text><Text color="cyan">t</Text><Text dimColor>{'] fix types  '}</Text>
-          <Text dimColor>{'['}</Text><Text color="cyan">x</Text><Text dimColor>{'] rebase  '}</Text>
-          <Text dimColor>{'['}</Text><Text color="cyan">m</Text><Text dimColor>{'] merge'}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">m</Text><Text dimColor>{'] merge  '}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">y</Text><Text dimColor>{'] copy URL  '}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">?</Text><Text dimColor>{'] help'}</Text>
         </Text>
       </Box>
     );

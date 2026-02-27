@@ -4,6 +4,8 @@ interface UseScrollResult {
   scrollOffset: number;
   scrollUp: () => void;
   scrollDown: (maxLines: number, viewportHeight: number) => void;
+  pageUp: (viewportHeight: number) => void;
+  pageDown: (maxLines: number, viewportHeight: number) => void;
   resetScroll: () => void;
 }
 
@@ -18,9 +20,17 @@ export function useScroll(): UseScrollResult {
     setScrollOffset(o => Math.min(Math.max(0, maxLines - viewportHeight), o + 1));
   }, []);
 
+  const pageUp = useCallback((viewportHeight: number) => {
+    setScrollOffset(o => Math.max(0, o - viewportHeight));
+  }, []);
+
+  const pageDown = useCallback((maxLines: number, viewportHeight: number) => {
+    setScrollOffset(o => Math.min(Math.max(0, maxLines - viewportHeight), o + viewportHeight));
+  }, []);
+
   const resetScroll = useCallback(() => {
     setScrollOffset(0);
   }, []);
 
-  return { scrollOffset, scrollUp, scrollDown, resetScroll };
+  return { scrollOffset, scrollUp, scrollDown, pageUp, pageDown, resetScroll };
 }

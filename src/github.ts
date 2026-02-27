@@ -103,6 +103,7 @@ export async function listOpenPRs(repo: RepoConfig): Promise<Omit<PR, 'score' | 
     })),
     repo,
     reviewComments: [],
+    conversationComments: '',
     reviewVerdict: null,
   }));
 }

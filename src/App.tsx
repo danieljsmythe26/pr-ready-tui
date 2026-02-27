@@ -12,9 +12,11 @@ import { PRDetail } from './components/PRDetail.js';
 import { AgentPicker } from './components/AgentPicker.js';
 import { MergeConfirm } from './components/MergeConfirm.js';
 import { StatusBar } from './components/StatusBar.js';
+import { HelpOverlay } from './components/HelpOverlay.js';
 
 const MIN_WIDTH = 60;
-const MAX_WIDTH = 140;
+const MAX_WIDTH = 200;
+const TWO_PANE_MIN = 120;
 const DETAIL_VIEWPORT = 20;
 const MAX_DETAIL_LINES = 100;
 
@@ -39,15 +41,17 @@ function useTerminalWidth(): number {
 export function App() {
   const { exit } = useApp();
   const BOX_WIDTH = useTerminalWidth();
-  const { prs, loading, error, refresh, hideBots, toggleBots, updatePR } = usePRs();
+  const { prs, loading, error, refresh, hideBots, toggleBots, sortBy, toggleSort, repoFilter, cycleRepoFilter, updatePR } = usePRs();
 
   const [view, setView] = useState<View>('list');
+  const [prevView, setPrevView] = useState<View>('list');
   const [selectedPR, setSelectedPR] = useState(0);
   const [selectedAgent, setSelectedAgent] = useState(0);
   const [agentAction, setAgentAction] = useState<AgentAction>('review');
   const [reviewedPRs, setReviewedPRs] = useState<Set<string>>(new Set());
   const [mergeStatus, setMergeStatus] = useState<string | null>(null);
-  const { scrollOffset, scrollUp, scrollDown, resetScroll } = useScroll();
+  const { scrollOffset, scrollUp, scrollDown, pageUp, pageDown, resetScroll } = useScroll();
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   // Clamp selectedPR to valid range whenever prs changes
   useEffect(() => {
@@ -67,6 +71,18 @@ export function App() {
   const isTTY = process.stdin.isTTY ?? false;
 
   const currentPR = prs[clampedIndex];
+  const twoPane = BOX_WIDTH >= TWO_PANE_MIN;
+  const leftWidth = twoPane ? Math.floor(BOX_WIDTH * 0.4) : BOX_WIDTH;
+  const rightWidth = twoPane ? BOX_WIDTH - leftWidth : BOX_WIDTH;
+
+  // Reset scroll when selection changes in two-pane mode
+  const [lastSelected, setLastSelected] = useState(0);
+  useEffect(() => {
+    if (twoPane && clampedIndex !== lastSelected) {
+      resetScroll();
+      setLastSelected(clampedIndex);
+    }
+  }, [twoPane, clampedIndex, lastSelected, resetScroll]);
 
   const doMerge = useCallback(() => {
     if (!currentPR) return;
@@ -90,6 +106,11 @@ export function App() {
 
   useInput((input, key) => {
     // Global
+    if (input === '?' && (view === 'list' || view === 'detail')) {
+      setPrevView(view);
+      setView('help');
+      return;
+    }
     if (input === 'q' && view !== 'agent-picker' && view !== 'merge-confirm') {
       exit();
       return;
@@ -108,6 +129,37 @@ export function App() {
       } else if (input === 'b') {
         toggleBots();
         setSelectedPR(0);
+      } else if (input === 's') {
+        toggleSort();
+      } else if (input === '/') {
+        cycleRepoFilter();
+        setSelectedPR(0);
+      } else if (twoPane && input === 'u' && key.ctrl) {
+        pageUp(DETAIL_VIEWPORT);
+      } else if (twoPane && input === 'd' && key.ctrl) {
+        pageDown(MAX_DETAIL_LINES, DETAIL_VIEWPORT);
+      } else if (twoPane && input === 'y' && currentPR) {
+        const cmd = process.platform === 'darwin' ? 'pbcopy' : 'xclip';
+        const args = process.platform === 'darwin' ? [] : ['-selection', 'clipboard'];
+        const child = execFile(cmd, args, { timeout: 5000 }, (err) => {
+          if (err) {
+            setCopyStatus('Copy failed');
+          } else {
+            setCopyStatus('Copied!');
+          }
+          setTimeout(() => setCopyStatus(null), 2000);
+        });
+        child.stdin?.write(currentPR.url);
+        child.stdin?.end();
+      } else if (twoPane && input === 'o' && currentPR) {
+        execFile('gh', ['pr', 'view', '--web', String(currentPR.number), '--repo',
+          `${currentPR.repo.owner}/${currentPR.repo.repo}`], { timeout: 10_000 }, () => {});
+      } else if (twoPane && input === 'v') {
+        setAgentAction('review');
+        setSelectedAgent(0);
+        setView('agent-picker');
+      } else if (twoPane && input === 'm' && currentPR) {
+        setView('merge-confirm');
       }
     } else if (view === 'detail') {
       if (key.escape) {
@@ -116,6 +168,30 @@ export function App() {
         scrollUp();
       } else if (key.downArrow) {
         scrollDown(MAX_DETAIL_LINES, DETAIL_VIEWPORT);
+      } else if (input === 'u' && key.ctrl) {
+        pageUp(DETAIL_VIEWPORT);
+      } else if (input === 'd' && key.ctrl) {
+        pageDown(MAX_DETAIL_LINES, DETAIL_VIEWPORT);
+      } else if (input === 'y') {
+        if (currentPR) {
+          const cmd = process.platform === 'darwin' ? 'pbcopy' : 'xclip';
+          const args = process.platform === 'darwin' ? [] : ['-selection', 'clipboard'];
+          const child = execFile(cmd, args, { timeout: 5000 }, (err) => {
+            if (err) {
+              setCopyStatus('Copy failed');
+            } else {
+              setCopyStatus('Copied!');
+            }
+            setTimeout(() => setCopyStatus(null), 2000);
+          });
+          child.stdin?.write(currentPR.url);
+          child.stdin?.end();
+        }
+      } else if (input === 'o') {
+        if (currentPR) {
+          execFile('gh', ['pr', 'view', '--web', String(currentPR.number), '--repo',
+            `${currentPR.repo.owner}/${currentPR.repo.repo}`], { timeout: 10_000 }, () => {});
+        }
       } else if (input === 'v') {
         setAgentAction('review');
         setSelectedAgent(0);
@@ -175,6 +251,10 @@ export function App() {
       } else if (key.escape || input === 'n') {
         setView('detail');
       }
+    } else if (view === 'help') {
+      if (key.escape || input === '?') {
+        setView(prevView);
+      }
     }
   }, { isActive: isTTY });
 
@@ -184,10 +264,25 @@ export function App() {
 
   return (
     <Box flexDirection="column" padding={0}>
-      <Header totalPRs={prs.length} hideBots={hideBots} loading={loading} boxWidth={BOX_WIDTH} />
+      <Header totalPRs={prs.length} hideBots={hideBots} loading={loading} boxWidth={BOX_WIDTH} sortBy={sortBy} repoFilter={repoFilter} splitAt={twoPane && view === 'list' ? leftWidth : undefined} />
 
-      {view === 'list' && (
+      {view === 'list' && !twoPane && (
         <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={BOX_WIDTH} />
+      )}
+
+      {view === 'list' && twoPane && (
+        <Box flexDirection="row">
+          <Box flexDirection="column" width={leftWidth}>
+            <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={leftWidth} condensed />
+          </Box>
+          <Box flexDirection="column" width={rightWidth}>
+            {currentPR ? (
+              <PRDetail pr={currentPR} boxWidth={rightWidth} scrollOffset={scrollOffset} leftBorder={false} />
+            ) : (
+              <Text dimColor>{' '.repeat(rightWidth - 1) + '│'}</Text>
+            )}
+          </Box>
+        </Box>
       )}
 
       {view === 'detail' && currentPR && (
@@ -202,6 +297,19 @@ export function App() {
         <MergeConfirm pr={currentPR} boxWidth={BOX_WIDTH} />
       )}
 
+      {view === 'help' && (
+        <HelpOverlay boxWidth={BOX_WIDTH} />
+      )}
+
+      {/* Copy status */}
+      {copyStatus && (
+        <Text>
+          <Text dimColor>{'│  '}</Text>
+          <Text color="green">{copyStatus}</Text>
+          <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 2 - copyStatus.length)) + '│'}</Text>
+        </Text>
+      )}
+
       {/* Merge status */}
       {mergeStatus && (
         <Text>
@@ -212,7 +320,11 @@ export function App() {
       )}
 
       {/* Bottom border */}
-      <Text dimColor>{'└' + '─'.repeat(innerWidth) + '┘'}</Text>
+      {twoPane && view === 'list' ? (
+        <Text dimColor>{'└' + '─'.repeat(leftWidth - 2) + '┴' + '─'.repeat(rightWidth - 1) + '┘'}</Text>
+      ) : (
+        <Text dimColor>{'└' + '─'.repeat(innerWidth) + '┘'}</Text>
+      )}
 
       <StatusBar
         view={view}

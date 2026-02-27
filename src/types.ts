@@ -37,6 +37,7 @@ export interface PR {
   score: number;
   scoreBreakdown: ScoreBreakdown;
   reviewComments: ReviewComment[];
+  conversationComments: string;
   reviewVerdict: string | null;
 }
 
@@ -62,7 +63,7 @@ export interface ScoreBreakdown {
   total: number;
 }
 
-export type View = 'list' | 'detail' | 'agent-picker' | 'merge-confirm';
+export type View = 'list' | 'detail' | 'agent-picker' | 'merge-confirm' | 'help';
 
 export type AgentAction = 'review' | 'fix' | 'fix-types';
 

@@ -24,6 +24,7 @@ const basePr = (overrides: Partial<Omit<PR, 'score' | 'scoreBreakdown'>> = {}): 
   statusCheckRollup: [],
   repo: baseRepo,
   reviewComments: [],
+  conversationComments: '',
   reviewVerdict: null,
   ...overrides,
 });
@@ -58,7 +59,7 @@ describe('computeScore', () => {
     });
   });
 
-  it('scores 0 for failed CI, changes requested, conflicting, stale', () => {
+  it('scores lowest for all-failed CI, changes requested, conflicting, stale', () => {
     setNow(fixedNow);
     const pr = basePr({
       statusCheckRollup: [{ name: 'ci', conclusion: 'FAILURE', status: 'COMPLETED' }],
@@ -68,7 +69,7 @@ describe('computeScore', () => {
     });
 
     const score = computeScore(pr);
-    expect(score.total).toBe(0);
+    expect(score.total).toBe(0); // ci:0 + reviews:0 + conflicts:0 + staleness:0
   });
 
   it('handles mixed signals', () => {
@@ -105,19 +106,29 @@ describe('scoreCi', () => {
     expect(scoreCi(checks)).toBe(30);
   });
 
-  it('returns 0 when any checks fail', () => {
+  it('returns proportional score when some checks fail', () => {
     const checks: CICheck[] = [
       { name: 'build', conclusion: 'SUCCESS', status: 'COMPLETED' },
       { name: 'lint', conclusion: 'FAILURE', status: 'COMPLETED' },
     ];
-    expect(scoreCi(checks)).toBe(0);
+    expect(scoreCi(checks)).toBe(15); // 30 * (1/2)
   });
 
-  it('returns 15 when checks are pending', () => {
+  it('returns proportional score when checks are pending', () => {
     const checks: CICheck[] = [
       { name: 'build', conclusion: null, status: 'IN_PROGRESS' },
     ];
-    expect(scoreCi(checks)).toBe(15);
+    expect(scoreCi(checks)).toBe(15); // 30 * (0.5/1)
+  });
+
+  it('returns proportional score for mixed passed/failed/pending', () => {
+    const checks: CICheck[] = [
+      { name: 'build', conclusion: 'SUCCESS', status: 'COMPLETED' },
+      { name: 'lint', conclusion: 'SUCCESS', status: 'COMPLETED' },
+      { name: 'security', conclusion: 'FAILURE', status: 'COMPLETED' },
+      { name: 'deploy', conclusion: null, status: 'IN_PROGRESS' },
+    ];
+    expect(scoreCi(checks)).toBe(19); // 30 * (1+1+0+0.5)/4 = 30 * 2.5/4
   });
 });
 

@@ -9,9 +9,10 @@ interface PRListProps {
   loading: boolean;
   error: string | null;
   boxWidth: number;
+  condensed?: boolean;
 }
 
-export function PRList({ prs, selectedIndex, loading, error, boxWidth }: PRListProps) {
+export function PRList({ prs, selectedIndex, loading, error, boxWidth, condensed }: PRListProps) {
   const innerWidth = boxWidth - 2;
 
   if (loading && prs.length === 0) {
@@ -57,7 +58,9 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth }: PRListP
   }
 
   // Column headers
-  const headerLine = '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 49)) + 'AUTHOR       CI R M';
+  const headerLine = condensed
+    ? '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 40)) + 'AGE CI R M'
+    : '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 53)) + 'AUTHOR       AGE CI R M';
 
   return (
     <Box flexDirection="column">
@@ -69,7 +72,7 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth }: PRListP
       </Text>
       <Text dimColor>{'│' + '─'.repeat(innerWidth) + '│'}</Text>
       {prs.map((pr, i) => (
-        <PRCard key={`${pr.repo.repo}-${pr.number}`} pr={pr} selected={i === selectedIndex} boxWidth={boxWidth} />
+        <PRCard key={`${pr.repo.repo}-${pr.number}`} pr={pr} selected={i === selectedIndex} boxWidth={boxWidth} condensed={condensed} />
       ))}
     </Box>
   );
