@@ -157,12 +157,24 @@ export async function getReviewComments(repo: RepoConfig, prNumber: number): Pro
 
 export async function getConversationComments(repo: RepoConfig, prNumber: number): Promise<string> {
   try {
+    // Use REST API instead of `gh pr view --comments` which breaks due to
+    // GraphQL Projects Classic deprecation warning returning empty results.
     return await ghRaw([
-      'pr', 'view', String(prNumber),
-      '--repo', `${repo.owner}/${repo.repo}`,
-      '--comments',
+      'api', '--paginate',
+      `repos/${repo.owner}/${repo.repo}/issues/${prNumber}/comments`,
+      '--jq',
+      '.[] | "\\(.user.login) (\\(.created_at)):\\n\\(.body)\\n---"',
     ]);
   } catch {
-    return '';
+    // Fallback to gh pr view --comments
+    try {
+      return await ghRaw([
+        'pr', 'view', String(prNumber),
+        '--repo', `${repo.owner}/${repo.repo}`,
+        '--comments',
+      ]);
+    } catch {
+      return '';
+    }
   }
 }
