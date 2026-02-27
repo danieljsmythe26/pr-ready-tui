@@ -1,5 +1,7 @@
 import React from 'react';
 import { Text } from 'ink';
+import stringWidth from 'string-width';
+import cliTruncate from 'cli-truncate';
 import type { PR } from '../types.js';
 
 interface PRCardProps {
@@ -57,9 +59,10 @@ export function PRCard({ pr, selected, boxWidth }: PRCardProps) {
   // Selected row: inverted background (white bg, black text) like lazygit
   if (selected) {
     const rowContent = `${prefix}${scoreStr} ${repoShort} #${String(pr.number).padEnd(4)} ${title} ${author} ${ci} ${review} ${merge}`;
-    const padded = rowContent.length < innerWidth
-      ? rowContent + ' '.repeat(innerWidth - rowContent.length)
-      : rowContent.slice(0, innerWidth);
+    const contentWidth = stringWidth(rowContent);
+    const padded = contentWidth < innerWidth
+      ? rowContent + ' '.repeat(innerWidth - contentWidth)
+      : cliTruncate(rowContent, innerWidth, { truncationCharacter: '' });
 
     return (
       <Text>
@@ -69,6 +72,11 @@ export function PRCard({ pr, selected, boxWidth }: PRCardProps) {
       </Text>
     );
   }
+
+  // Calculate total content width of unselected row to pad to innerWidth
+  const rowText = `${prefix}${scoreStr} ${repoShort} #${String(pr.number).padEnd(4)} ${title} ${author} ${ci} ${review} ${merge}`;
+  const rowWidth = stringWidth(rowText);
+  const trailingPad = rowWidth < innerWidth ? ' '.repeat(innerWidth - rowWidth) : '';
 
   return (
     <Text>
@@ -89,6 +97,7 @@ export function PRCard({ pr, selected, boxWidth }: PRCardProps) {
       <Text color={review === 'A' ? 'green' : review === 'C' ? 'red' : 'yellow'}>{review}</Text>
       <Text> </Text>
       <Text color={merge === 'M' ? 'green' : merge === '!' ? 'red' : 'yellow'}>{merge}</Text>
+      <Text>{trailingPad}</Text>
       <Text dimColor>{'│'}</Text>
     </Text>
   );

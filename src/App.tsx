@@ -27,7 +27,7 @@ function useTerminalWidth(): number {
   useEffect(() => {
     if (!stdout) return;
     const onResize = () => {
-      setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, stdout.columns)));
+      setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, stdout.columns ?? 90)));
     };
     stdout.on('resize', onResize);
     return () => { stdout.off('resize', onResize); };
