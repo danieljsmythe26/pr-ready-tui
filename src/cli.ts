@@ -73,7 +73,11 @@ function parseArgs(argv: string[]): { prNumber: number | undefined; repo: RepoCo
     if (arg === '--json') { json = true; continue; }
     if (arg === '--tui') { tui = true; continue; }
     if (arg === '--help' || arg === '-h') { help = true; continue; }
-    if (arg === '--repo' && argv[i + 1]) {
+    if (arg === '--repo') {
+      if (!argv[i + 1]) {
+        console.error(`${RED}--repo requires a value (e.g. --repo owner/repo)${RESET}`);
+        process.exit(1);
+      }
       const parts = argv[++i]!.split('/');
       if (parts.length === 2) {
         repo = { owner: parts[0]!, repo: parts[1]! };
@@ -181,8 +185,8 @@ async function printPRDetail(pr: PR, repo: RepoConfig, json: boolean): Promise<v
   }
 }
 
-async function printPRList(json: boolean): Promise<void> {
-  const { prs, errors } = await listAllOpenPRs(REPOS);
+async function printPRList(json: boolean, repos: RepoConfig[]): Promise<void> {
+  const { prs, errors } = await listAllOpenPRs(repos);
 
   const scored: PR[] = prs.map(pr => {
     const breakdown = computeScore(pr);
@@ -237,18 +241,25 @@ async function main(): Promise<void> {
     // Find PR across repos (or use specified repo)
     const repos = args.repo ? [args.repo] : REPOS;
     const { prs } = await listAllOpenPRs(repos);
-    const match = prs.find(p => p.number === args.prNumber);
+    const matches = prs.filter(p => p.number === args.prNumber);
 
-    if (!match) {
+    if (matches.length === 0) {
       console.error(`${RED}PR #${args.prNumber} not found in ${repos.map(r => `${r.owner}/${r.repo}`).join(', ')}${RESET}`);
       process.exit(1);
     }
 
+    if (matches.length > 1 && !args.repo) {
+      console.error(`${RED}PR #${args.prNumber} exists in multiple repos: ${matches.map(m => `${m.repo.owner}/${m.repo.repo}`).join(', ')}${RESET}`);
+      console.error(`${RED}Use --repo to disambiguate (e.g. --repo ${matches[0]!.repo.owner}/${matches[0]!.repo.repo})${RESET}`);
+      process.exit(1);
+    }
+
+    const match = matches[0]!;
     const breakdown = computeScore(match);
     const pr: PR = { ...match, score: breakdown.total, scoreBreakdown: breakdown };
     await printPRDetail(pr, pr.repo, args.json);
   } else {
-    await printPRList(args.json);
+    await printPRList(args.json, args.repo ? [args.repo] : REPOS);
   }
 }
 

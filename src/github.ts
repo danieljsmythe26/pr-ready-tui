@@ -160,7 +160,7 @@ export async function getConversationComments(repo: RepoConfig, prNumber: number
     // Use REST API instead of `gh pr view --comments` which breaks due to
     // GraphQL Projects Classic deprecation warning returning empty results.
     return await ghRaw([
-      'api',
+      'api', '--paginate',
       `repos/${repo.owner}/${repo.repo}/issues/${prNumber}/comments`,
       '--jq',
       '.[] | "\\(.user.login) (\\(.created_at)):\\n\\(.body)\\n---"',
