@@ -12,7 +12,7 @@ export function Header({ totalPRs, hideBots, loading, boxWidth }: HeaderProps) {
   const innerWidth = boxWidth - 2;
   const title = ' pr-ready-tui ';
   const info = `${totalPRs} PRs${hideBots ? ' (bots hidden)' : ''}${loading ? ' ...' : ''}`;
-  const pad = innerWidth - 3 - title.length - info.length - 2;
+  const pad = innerWidth - 1 - title.length - info.length - 2;
 
   return (
     <Box flexDirection="column">

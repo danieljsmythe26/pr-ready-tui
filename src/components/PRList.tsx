@@ -57,7 +57,7 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth }: PRListP
   }
 
   // Column headers
-  const headerLine = '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 67)) + 'AUTHOR       CI R M';
+  const headerLine = '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 49)) + 'AUTHOR       CI R M';
 
   return (
     <Box flexDirection="column">
