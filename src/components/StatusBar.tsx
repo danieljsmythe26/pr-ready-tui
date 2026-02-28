@@ -6,13 +6,12 @@ interface StatusBarProps {
   view: View;
   hideBots: boolean;
   reviewDone: boolean;
-  agentRunning: boolean;
-  agentSession: string | null;
+  agentCopied: boolean;
   agentError: string | null;
   boxWidth: number;
 }
 
-export function StatusBar({ view, hideBots, reviewDone, agentRunning, agentSession, agentError, boxWidth }: StatusBarProps) {
+export function StatusBar({ view, hideBots, reviewDone, agentCopied, agentError, boxWidth }: StatusBarProps) {
   if (agentError) {
     return (
       <Box marginTop={1}>
@@ -21,14 +20,13 @@ export function StatusBar({ view, hideBots, reviewDone, agentRunning, agentSessi
     );
   }
 
-  if (agentRunning && agentSession) {
+  if (agentCopied) {
     return (
-      <Box flexDirection="column" marginTop={1}>
+      <Box marginTop={1}>
         <Text>
-          <Text color="yellow">Agent running in tmux: </Text>
-          <Text color="cyan" bold>{agentSession}</Text>
+          <Text color="green">Command copied! </Text>
+          <Text dimColor>Paste in a new terminal to run agent</Text>
         </Text>
-        <Text dimColor>{'  Attach: tmux attach -t '}{agentSession}</Text>
       </Box>
     );
   }

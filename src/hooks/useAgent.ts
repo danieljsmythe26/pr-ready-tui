@@ -6,19 +6,16 @@ import type { PR, Agent, AgentAction, RepoConfig } from '../types.js';
 import { CODING_DIR } from '../types.js';
 
 interface UseAgentResult {
-  running: boolean;
-  sessionName: string | null;
+  copied: boolean;
   error: string | null;
   spawn: (agent: Agent, repo: RepoConfig, pr: PR, action: AgentAction) => void;
 }
 
-export function useAgent(onComplete?: () => void): UseAgentResult {
-  const [running, setRunning] = useState(false);
-  const [sessionName, setSessionName] = useState<string | null>(null);
+export function useAgent(): UseAgentResult {
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const spawn = useCallback((agent: Agent, repo: RepoConfig, pr: PR, action: AgentAction) => {
-    const name = `prt-${agent.id}-${pr.number}`;
     const cmd = agent.command(repo, pr, action);
 
     // Use localPath override if set, otherwise resolve from CODING_DIR
@@ -38,36 +35,25 @@ export function useAgent(onComplete?: () => void): UseAgentResult {
       return;
     }
 
-    setRunning(true);
-    setSessionName(name);
     setError(null);
 
-    // Spawn in a tmux session — use bash -lc so the full command string
-    // is interpreted by a shell (handles spaces, quotes, pipes, etc.)
-    execFile('tmux', [
-      'new-session', '-d', '-s', name, '-c', repoPath, 'bash', '-lc', cmd,
-    ], (err) => {
+    // Build full command: cd to repo dir, then run agent command
+    const fullCmd = `cd ${repoPath} && ${cmd}`;
+
+    // Copy to clipboard via pbcopy
+    const clipCmd = process.platform === 'darwin' ? 'pbcopy' : 'xclip';
+    const clipArgs = process.platform === 'darwin' ? [] : ['-selection', 'clipboard'];
+    const child = execFile(clipCmd, clipArgs, { timeout: 5000 }, (err) => {
       if (err) {
-        setRunning(false);
-        setSessionName(null);
-        setError(err.message);
+        setError(`Clipboard failed: ${err.message}`);
         return;
       }
-
-      // Poll for tmux session to end
-      const interval = setInterval(() => {
-        execFile('tmux', ['has-session', '-t', name], (hasErr) => {
-          if (hasErr) {
-            // Session ended
-            clearInterval(interval);
-            setRunning(false);
-            setSessionName(null);
-            onComplete?.();
-          }
-        });
-      }, 3000);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 4000);
     });
-  }, [onComplete]);
+    child.stdin?.write(fullCmd);
+    child.stdin?.end();
+  }, []);
 
-  return { running, sessionName, error, spawn };
+  return { copied, error, spawn };
 }

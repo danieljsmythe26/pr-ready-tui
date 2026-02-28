@@ -62,11 +62,7 @@ export function App() {
 
   const clampedIndex = prs.length === 0 ? 0 : Math.min(selectedPR, prs.length - 1);
 
-  const handleAgentComplete = useCallback(() => {
-    refresh();
-  }, [refresh]);
-
-  const { running: agentRunning, sessionName: agentSession, error: agentError, spawn } = useAgent(handleAgentComplete);
+  const { copied: agentCopied, error: agentError, spawn } = useAgent();
 
   const isTTY = process.stdin.isTTY ?? false;
 
@@ -330,8 +326,7 @@ export function App() {
         view={view}
         hideBots={hideBots}
         reviewDone={reviewDone}
-        agentRunning={agentRunning}
-        agentSession={agentSession}
+        agentCopied={agentCopied}
         agentError={agentError}
         boxWidth={BOX_WIDTH}
       />
