@@ -3,6 +3,7 @@ import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import { execFile } from 'node:child_process';
 import type { View, AgentAction } from './types.js';
 import { AGENTS } from './types.js';
+import { toggleLabel } from './github.js';
 import { usePRs } from './hooks/usePRs.js';
 import { useAgent } from './hooks/useAgent.js';
 import { useScroll } from './hooks/useScroll.js';
@@ -18,7 +19,7 @@ const MIN_WIDTH = 60;
 const MAX_WIDTH = 200;
 const TWO_PANE_MIN = 120;
 const DETAIL_VIEWPORT = 20;
-const MAX_DETAIL_LINES = 100;
+const MAX_DETAIL_LINES = 500;
 
 function useTerminalWidth(): number {
   const { stdout } = useStdout();
@@ -52,6 +53,7 @@ export function App() {
   const [mergeStatus, setMergeStatus] = useState<string | null>(null);
   const { scrollOffset, scrollUp, scrollDown, pageUp, pageDown, resetScroll } = useScroll();
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [labelStatus, setLabelStatus] = useState<{ text: string; color: string } | null>(null);
 
   // Clamp selectedPR to valid range whenever prs changes
   useEffect(() => {
@@ -156,6 +158,21 @@ export function App() {
         setView('agent-picker');
       } else if (twoPane && input === 'm' && currentPR) {
         setView('merge-confirm');
+      } else if (twoPane && input === 'l' && currentPR) {
+        setLabelStatus({ text: 'Toggling label...', color: 'yellow' });
+        toggleLabel(currentPR.repo, currentPR.number, 'review', currentPR.labels)
+          .then(({ action }) => {
+            const newLabels = action === 'added'
+              ? [...currentPR.labels, 'review']
+              : currentPR.labels.filter(l => l !== 'review');
+            updatePR(currentPR.repo.repo, currentPR.number, { labels: newLabels });
+            setLabelStatus({ text: action === 'added' ? 'Label added!' : 'Label removed!', color: 'green' });
+            setTimeout(() => setLabelStatus(null), 2000);
+          })
+          .catch((err: Error) => {
+            setLabelStatus({ text: `Label failed: ${err.message}`, color: 'red' });
+            setTimeout(() => setLabelStatus(null), 3000);
+          });
       }
     } else if (view === 'detail') {
       if (key.escape) {
@@ -218,6 +235,23 @@ export function App() {
       } else if (input === 'm') {
         if (currentPR) {
           setView('merge-confirm');
+        }
+      } else if (input === 'l') {
+        if (currentPR) {
+          setLabelStatus({ text: 'Toggling label...', color: 'yellow' });
+          toggleLabel(currentPR.repo, currentPR.number, 'review', currentPR.labels)
+            .then(({ action }) => {
+              const newLabels = action === 'added'
+                ? [...currentPR.labels, 'review']
+                : currentPR.labels.filter(l => l !== 'review');
+              updatePR(currentPR.repo.repo, currentPR.number, { labels: newLabels });
+              setLabelStatus({ text: action === 'added' ? 'Label added!' : 'Label removed!', color: 'green' });
+              setTimeout(() => setLabelStatus(null), 2000);
+            })
+            .catch((err: Error) => {
+              setLabelStatus({ text: `Label failed: ${err.message}`, color: 'red' });
+              setTimeout(() => setLabelStatus(null), 3000);
+            });
         }
       }
     } else if (view === 'agent-picker') {
@@ -303,6 +337,15 @@ export function App() {
           <Text dimColor>{'│  '}</Text>
           <Text color="green">{copyStatus}</Text>
           <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 2 - copyStatus.length)) + '│'}</Text>
+        </Text>
+      )}
+
+      {/* Label status */}
+      {labelStatus && (
+        <Text>
+          <Text dimColor>{'│  '}</Text>
+          <Text color={labelStatus.color}>{labelStatus.text}</Text>
+          <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 2 - labelStatus.text.length)) + '│'}</Text>
         </Text>
       )}
 

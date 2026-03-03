@@ -58,6 +58,7 @@ export function StatusBar({ view, hideBots, reviewDone, agentCopied, agentError,
           <Text dimColor>{'['}</Text><Text color="cyan">v</Text><Text dimColor>{'] review  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">m</Text><Text dimColor>{'] merge  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">y</Text><Text dimColor>{'] copy URL  '}</Text>
+          <Text dimColor>{'['}</Text><Text color="cyan">l</Text><Text dimColor>{'] label  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">?</Text><Text dimColor>{'] help'}</Text>
         </Text>
       </Box>

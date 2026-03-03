@@ -156,6 +156,22 @@ export async function getReviewComments(repo: RepoConfig, prNumber: number): Pro
   }
 }
 
+export async function toggleLabel(
+  repo: RepoConfig,
+  prNumber: number,
+  label: string,
+  currentLabels: string[],
+): Promise<{ action: 'added' | 'removed' }> {
+  const hasLabel = currentLabels.includes(label);
+  const flag = hasLabel ? '--remove-label' : '--add-label';
+  await ghRaw([
+    'pr', 'edit', String(prNumber),
+    '--repo', `${repo.owner}/${repo.repo}`,
+    flag, label,
+  ]);
+  return { action: hasLabel ? 'removed' : 'added' };
+}
+
 export async function getConversationComments(repo: RepoConfig, prNumber: number): Promise<string> {
   try {
     // Use REST API instead of `gh pr view --comments` which breaks due to

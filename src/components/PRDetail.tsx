@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import type { PR } from '../types.js';
+import { wordWrap } from '../wordwrap.js';
 
 interface PRDetailProps {
   pr: PR;
@@ -177,28 +178,18 @@ export function PRDetail({ pr, boxWidth, scrollOffset, leftBorder = true }: PRDe
         </Text>
       );
 
-      // Comment body — wrap to fit
+      // Comment body — word wrap to fit
       const maxBodyWidth = innerWidth - 8;
-      const bodyLines = comment.body.split('\n').slice(0, 8); // Limit to 8 lines per comment
-      bodyLines.forEach((bl, j) => {
-        const truncated = bl.slice(0, maxBodyWidth);
+      const wrappedLines = comment.body.split('\n').flatMap(line => wordWrap(line, maxBodyWidth));
+      wrappedLines.forEach((bl, j) => {
         lines.push(
           <Text key={`rc-b-${i}-${j}`}>
             <Text dimColor>{lb + '     '}</Text>
-            <Text>{truncated}</Text>
-            <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 5 - truncated.length)) + '│'}</Text>
+            <Text>{bl}</Text>
+            <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 5 - bl.length)) + '│'}</Text>
           </Text>
         );
       });
-      if (comment.body.split('\n').length > 8) {
-        lines.push(
-          <Text key={`rc-more-${i}`}>
-            <Text dimColor>{lb + '     '}</Text>
-            <Text dimColor>{'...'}</Text>
-            <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 8)) + '│'}</Text>
-          </Text>
-        );
-      }
 
       // Separator between comments
       if (i < comments.length - 1) {
@@ -233,28 +224,18 @@ export function PRDetail({ pr, boxWidth, scrollOffset, leftBorder = true }: PRDe
           <Text dimColor>{pad(headerLine, innerWidth, 3) + '│'}</Text>
         </Text>
       );
-      // Remaining lines are the body
-      const bodyLines = blockLines.slice(1).slice(0, 8);
+      // Remaining lines are the body — word wrap to fit
       const maxBodyWidth = innerWidth - 8;
-      bodyLines.forEach((bl, j) => {
-        const truncated = bl.slice(0, maxBodyWidth);
+      const wrappedBodyLines = blockLines.slice(1).flatMap(line => wordWrap(line, maxBodyWidth));
+      wrappedBodyLines.forEach((bl, j) => {
         lines.push(
           <Text key={`cc-b-${i}-${j}`}>
             <Text dimColor>{lb + '     '}</Text>
-            <Text>{truncated}</Text>
-            <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 5 - truncated.length)) + '│'}</Text>
+            <Text>{bl}</Text>
+            <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 5 - bl.length)) + '│'}</Text>
           </Text>
         );
       });
-      if (blockLines.length > 9) {
-        lines.push(
-          <Text key={`cc-more-${i}`}>
-            <Text dimColor>{lb + '     '}</Text>
-            <Text dimColor>{'...'}</Text>
-            <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 8)) + '│'}</Text>
-          </Text>
-        );
-      }
       // Separator between comment blocks
       if (i < convBlocks.length - 1) {
         lines.push(<Text key={`cc-sep-${i}`} dimColor>{lb + '   ' + '·'.repeat(innerWidth - 7) + '   │'}</Text>);

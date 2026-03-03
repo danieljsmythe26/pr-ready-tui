@@ -26,6 +26,7 @@ const SECTIONS = [
       ['y', 'Copy PR URL to clipboard'],
       ['o', 'Open PR in browser'],
       ['m', 'Squash merge + delete branch'],
+      ['l', 'Toggle "review" label'],
     ],
   },
   {

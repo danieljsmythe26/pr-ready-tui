@@ -22,6 +22,7 @@ vi.mock('node:child_process', () => childProcessMock);
 
 let listOpenPRs: typeof import('../github.js').listOpenPRs;
 let listAllOpenPRs: typeof import('../github.js').listAllOpenPRs;
+let toggleLabel: typeof import('../github.js').toggleLabel;
 let execFileMock: typeof childProcessMock.execFile;
 
 describe('github', () => {
@@ -29,7 +30,7 @@ describe('github', () => {
     execFileMock = childProcessMock.execFile;
     execFileMock.mockReset();
     vi.resetModules();
-    ({ listOpenPRs, listAllOpenPRs } = await import('../github.js'));
+    ({ listOpenPRs, listAllOpenPRs, toggleLabel } = await import('../github.js'));
   });
 
   it('maps raw GH response to PR fields', async () => {
@@ -294,5 +295,41 @@ describe('github', () => {
     const result = await listAllOpenPRs([repoA, repoB]);
     expect(result.prs).toHaveLength(1);
     expect(result.errors).toEqual(['gadgets: boom']);
+  });
+
+  it('toggleLabel adds label when not present', async () => {
+    const repo: RepoConfig = { owner: 'acme', repo: 'widgets' };
+
+    execFileMock.mockImplementationOnce((...callArgs: unknown[]) => {
+      const callback = callArgs.at(-1) as ExecFileCallback;
+      callback(null, '', '');
+    });
+
+    const result = await toggleLabel(repo, 42, 'review', ['bug']);
+    expect(result).toEqual({ action: 'added' });
+    expect(execFileMock).toHaveBeenCalledWith(
+      'gh',
+      ['pr', 'edit', '42', '--repo', 'acme/widgets', '--add-label', 'review'],
+      expect.any(Object),
+      expect.any(Function),
+    );
+  });
+
+  it('toggleLabel removes label when already present', async () => {
+    const repo: RepoConfig = { owner: 'acme', repo: 'widgets' };
+
+    execFileMock.mockImplementationOnce((...callArgs: unknown[]) => {
+      const callback = callArgs.at(-1) as ExecFileCallback;
+      callback(null, '', '');
+    });
+
+    const result = await toggleLabel(repo, 42, 'review', ['bug', 'review']);
+    expect(result).toEqual({ action: 'removed' });
+    expect(execFileMock).toHaveBeenCalledWith(
+      'gh',
+      ['pr', 'edit', '42', '--repo', 'acme/widgets', '--remove-label', 'review'],
+      expect.any(Object),
+      expect.any(Function),
+    );
   });
 });
