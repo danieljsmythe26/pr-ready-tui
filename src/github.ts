@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { PR, CICheck, ReviewComment, RepoConfig } from './types.js';
+import type { PR, CICheck, ReviewComment, ConversationComment, RepoConfig } from './types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -104,6 +104,8 @@ export async function listOpenPRs(repo: RepoConfig): Promise<Omit<PR, 'score' | 
     repo,
     reviewComments: [],
     conversationComments: '',
+    structuredConversationComments: [],
+    commitDates: [],
     reviewVerdict: null,
   }));
 }
@@ -144,7 +146,7 @@ export async function getReviewComments(repo: RepoConfig, prNumber: number): Pro
       'api', '--paginate', '--slurp', `repos/${repo.owner}/${repo.repo}/pulls/${prNumber}/comments`,
     ]);
 
-    return comments.map(c => ({
+    return comments.flat().map(c => ({
       path: c.path,
       line: c.line ?? c.original_line,
       body: c.body,
@@ -193,5 +195,43 @@ export async function getConversationComments(repo: RepoConfig, prNumber: number
     } catch {
       return '';
     }
+  }
+}
+
+export async function getStructuredConversationComments(repo: RepoConfig, prNumber: number): Promise<ConversationComment[]> {
+  try {
+    const comments = await gh<Array<{
+      user: { login: string };
+      created_at: string;
+      body: string;
+    }>>([
+      'api', '--paginate', '--slurp', `repos/${repo.owner}/${repo.repo}/issues/${prNumber}/comments`,
+    ]);
+
+    return comments.flat().map(c => ({
+      author: c.user.login,
+      createdAt: c.created_at,
+      body: c.body,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getCommitDates(repo: RepoConfig, prNumber: number): Promise<{ author: string; date: string }[]> {
+  try {
+    const commits = await gh<Array<{
+      author: { login: string } | null;
+      commit: { author: { date: string } };
+    }>>([
+      'api', '--paginate', '--slurp', `repos/${repo.owner}/${repo.repo}/pulls/${prNumber}/commits`,
+    ]);
+
+    return commits.flat().map(c => ({
+      author: c.author?.login ?? '',
+      date: c.commit.author.date,
+    }));
+  } catch {
+    return [];
   }
 }

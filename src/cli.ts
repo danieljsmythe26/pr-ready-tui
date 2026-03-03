@@ -10,7 +10,7 @@
  *   pr-ready --tui                        # Launch full TUI mode
  */
 
-import { listAllOpenPRs, getReviewComments, getConversationComments } from './github.js';
+import { listAllOpenPRs, getReviewComments, getConversationComments, getStructuredConversationComments, getCommitDates } from './github.js';
 import { computeScore } from './scoring.js';
 import type { PR, RepoConfig, ScoreBreakdown, ReviewComment } from './types.js';
 import { REPOS } from './types.js';
@@ -117,22 +117,25 @@ ${BOLD}Options:${RESET}
 }
 
 async function printPRDetail(pr: PR, repo: RepoConfig, json: boolean): Promise<void> {
-  const [reviewComments, conversationComments] = await Promise.all([
+  const [reviewComments, conversationComments, structuredConversationComments, commitDates] = await Promise.all([
     getReviewComments(repo, pr.number),
     getConversationComments(repo, pr.number),
+    getStructuredConversationComments(repo, pr.number),
+    getCommitDates(repo, pr.number),
   ]);
+
+  // Re-score with structured comment data for coverage ratio
+  const enriched = { ...pr, reviewComments, conversationComments, structuredConversationComments, commitDates };
+  const sb = computeScore(enriched);
+  const scoredPr = { ...enriched, score: sb.total, scoreBreakdown: sb };
 
   if (json) {
     console.log(JSON.stringify({
-      ...pr,
-      reviewComments,
-      conversationComments,
-      verdict: pr.score >= 80 ? 'ready' : pr.score >= 50 ? 'caveats' : 'not_ready',
+      ...scoredPr,
+      verdict: sb.total >= 80 ? 'ready' : sb.total >= 50 ? 'caveats' : 'not_ready',
     }, null, 2));
     return;
   }
-
-  const sb = pr.scoreBreakdown;
 
   console.log('');
   console.log(`  ${BOLD}${pr.title}${RESET}`);
@@ -141,8 +144,9 @@ async function printPRDetail(pr: PR, repo: RepoConfig, json: boolean): Promise<v
   console.log(`  ${'─'.repeat(60)}`);
 
   // Score bar
+  const penaltyStr = sb.reviewPenalty < 0 ? `${RED}(${sb.reviewPenalty})${RESET}` : '';
   console.log(`  ${BOLD}Score:${RESET} ${colorScore(sb.total)}/100  ${verdict(sb)}`);
-  console.log(`  ${DIM}CI: ${sb.ci}/30 · Reviews: ${sb.reviews}/30 · Conflicts: ${sb.conflicts}/20 · Freshness: ${sb.staleness}/20${RESET}`);
+  console.log(`  ${DIM}CI: ${sb.ci}/30 · Reviews: ${sb.reviews}/30${penaltyStr} · Conflicts: ${sb.conflicts}/20 · Freshness: ${sb.staleness}/20${RESET}`);
   console.log('');
 
   // Merge status

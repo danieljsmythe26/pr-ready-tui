@@ -23,6 +23,8 @@ vi.mock('node:child_process', () => childProcessMock);
 let listOpenPRs: typeof import('../github.js').listOpenPRs;
 let listAllOpenPRs: typeof import('../github.js').listAllOpenPRs;
 let toggleLabel: typeof import('../github.js').toggleLabel;
+let getStructuredConversationComments: typeof import('../github.js').getStructuredConversationComments;
+let getCommitDates: typeof import('../github.js').getCommitDates;
 let execFileMock: typeof childProcessMock.execFile;
 
 describe('github', () => {
@@ -30,7 +32,7 @@ describe('github', () => {
     execFileMock = childProcessMock.execFile;
     execFileMock.mockReset();
     vi.resetModules();
-    ({ listOpenPRs, listAllOpenPRs, toggleLabel } = await import('../github.js'));
+    ({ listOpenPRs, listAllOpenPRs, toggleLabel, getStructuredConversationComments, getCommitDates } = await import('../github.js'));
   });
 
   it('maps raw GH response to PR fields', async () => {
@@ -331,5 +333,67 @@ describe('github', () => {
       expect.any(Object),
       expect.any(Function),
     );
+  });
+
+  it('getStructuredConversationComments returns parsed comments', async () => {
+    const repo: RepoConfig = { owner: 'acme', repo: 'widgets' };
+    const apiResponse = [
+      { user: { login: 'claude[bot]' }, created_at: '2026-02-20T10:00:00Z', body: 'Fix this' },
+      { user: { login: 'alice' }, created_at: '2026-02-20T10:05:00Z', body: 'Done' },
+    ];
+
+    execFileMock.mockImplementationOnce((...callArgs: unknown[]) => {
+      const callback = callArgs.at(-1) as ExecFileCallback;
+      callback(null, JSON.stringify(apiResponse), '');
+    });
+
+    const comments = await getStructuredConversationComments(repo, 42);
+    expect(comments).toEqual([
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:00:00Z', body: 'Fix this' },
+      { author: 'alice', createdAt: '2026-02-20T10:05:00Z', body: 'Done' },
+    ]);
+  });
+
+  it('getStructuredConversationComments returns empty array on error', async () => {
+    const repo: RepoConfig = { owner: 'acme', repo: 'widgets' };
+
+    execFileMock.mockImplementationOnce((...callArgs: unknown[]) => {
+      const callback = callArgs.at(-1) as ExecFileCallback;
+      callback(new Error('API error'), '', '');
+    });
+
+    const comments = await getStructuredConversationComments(repo, 42);
+    expect(comments).toEqual([]);
+  });
+
+  it('getCommitDates returns parsed commit dates', async () => {
+    const repo: RepoConfig = { owner: 'acme', repo: 'widgets' };
+    const apiResponse = [
+      { author: { login: 'alice' }, commit: { author: { date: '2026-02-20T10:10:00Z' } } },
+      { author: null, commit: { author: { date: '2026-02-20T10:15:00Z' } } },
+    ];
+
+    execFileMock.mockImplementationOnce((...callArgs: unknown[]) => {
+      const callback = callArgs.at(-1) as ExecFileCallback;
+      callback(null, JSON.stringify(apiResponse), '');
+    });
+
+    const commits = await getCommitDates(repo, 42);
+    expect(commits).toEqual([
+      { author: 'alice', date: '2026-02-20T10:10:00Z' },
+      { author: '', date: '2026-02-20T10:15:00Z' },
+    ]);
+  });
+
+  it('getCommitDates returns empty array on error', async () => {
+    const repo: RepoConfig = { owner: 'acme', repo: 'widgets' };
+
+    execFileMock.mockImplementationOnce((...callArgs: unknown[]) => {
+      const callback = callArgs.at(-1) as ExecFileCallback;
+      callback(new Error('API error'), '', '');
+    });
+
+    const commits = await getCommitDates(repo, 42);
+    expect(commits).toEqual([]);
   });
 });

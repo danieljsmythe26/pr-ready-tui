@@ -1,4 +1,4 @@
-import type { PR, ScoreBreakdown, CICheck } from './types.js';
+import type { PR, ScoreBreakdown, CICheck, ConversationComment } from './types.js';
 
 export function scoreCi(checks: CICheck[]): number {
   if (checks.length === 0) return 15; // No CI = unknown
@@ -15,13 +15,45 @@ export function scoreCi(checks: CICheck[]): number {
   return Math.round(30 * sum / checks.length);
 }
 
-export function scoreReviews(reviewDecision: string): number {
+const REVIEW_BOTS = ['claude[bot]', 'coderabbitai[bot]', 'copilot-pull-request-reviewer', 'github-actions', 'github-actions[bot]'];
+
+export function scoreReviews(
+  reviewDecision: string,
+  botComments: ConversationComment[] = [],
+  commitDates: { author: string; date: string }[] = [],
+  prAuthor: string = '',
+): { score: number; penalty: number } {
+  let base: number;
   switch (reviewDecision) {
-    case 'APPROVED': return 30;
-    case 'CHANGES_REQUESTED': return 0;
-    case 'REVIEW_REQUIRED': return 10;
-    default: return 10; // No reviews yet
+    case 'APPROVED': base = 30; break;
+    case 'CHANGES_REQUESTED': base = 0; break;
+    case 'REVIEW_REQUIRED': base = 10; break;
+    default: base = 10;
   }
+
+  // Filter to actionable bot review comments (not by PR author)
+  const actionable = botComments.filter(c =>
+    REVIEW_BOTS.includes(c.author.toLowerCase()) && c.author.toLowerCase() !== prAuthor.toLowerCase()
+  );
+
+  if (actionable.length === 0) return { score: base, penalty: 0 };
+
+  // Count addressed: commit by PR author exists after comment + 2min guard
+  const authorCommitDates = commitDates
+    .filter(c => c.author.toLowerCase() === prAuthor.toLowerCase())
+    .map(c => new Date(c.date).getTime());
+
+  let addressed = 0;
+  for (const comment of actionable) {
+    const commentTime = new Date(comment.createdAt).getTime() + 120_000; // +2min
+    if (authorCommitDates.some(d => d > commentTime)) {
+      addressed++;
+    }
+  }
+
+  const coverage = addressed / actionable.length;
+  const coverageScore = Math.round(30 * coverage);
+  return { score: coverageScore, penalty: coverageScore - base };
 }
 
 export function scoreConflicts(mergeable: string): number {
@@ -44,8 +76,13 @@ export function scoreStaleness(updatedAt: string): number {
 
 export function computeScore(pr: Omit<PR, 'score' | 'scoreBreakdown'>): ScoreBreakdown {
   const ci = scoreCi(pr.statusCheckRollup);
-  const reviews = scoreReviews(pr.reviewDecision);
+  const { score: reviews, penalty: reviewPenalty } = scoreReviews(
+    pr.reviewDecision,
+    pr.structuredConversationComments,
+    pr.commitDates,
+    pr.author,
+  );
   const conflicts = scoreConflicts(pr.mergeable);
   const staleness = scoreStaleness(pr.updatedAt);
-  return { ci, reviews, conflicts, staleness, total: ci + reviews + conflicts + staleness };
+  return { ci, reviews, reviewPenalty, conflicts, staleness, total: ci + reviews + conflicts + staleness };
 }

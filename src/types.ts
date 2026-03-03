@@ -38,6 +38,8 @@ export interface PR {
   scoreBreakdown: ScoreBreakdown;
   reviewComments: ReviewComment[];
   conversationComments: string;
+  structuredConversationComments: ConversationComment[];
+  commitDates: { author: string; date: string }[];
   reviewVerdict: string | null;
 }
 
@@ -55,9 +57,16 @@ export interface ReviewComment {
   createdAt: string;
 }
 
+export interface ConversationComment {
+  author: string;
+  createdAt: string;
+  body: string;
+}
+
 export interface ScoreBreakdown {
   ci: number;
   reviews: number;
+  reviewPenalty: number;
   conflicts: number;
   staleness: number;
   total: number;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { computeScore, scoreCi, scoreReviews, scoreConflicts, scoreStaleness } from '../scoring.js';
-import type { PR, CICheck, RepoConfig } from '../types.js';
+import type { PR, CICheck, ConversationComment, RepoConfig } from '../types.js';
 
 const baseRepo: RepoConfig = { owner: 'acme', repo: 'widgets' };
 
@@ -25,6 +25,8 @@ const basePr = (overrides: Partial<Omit<PR, 'score' | 'scoreBreakdown'>> = {}): 
   repo: baseRepo,
   reviewComments: [],
   conversationComments: '',
+  structuredConversationComments: [],
+  commitDates: [],
   reviewVerdict: null,
   ...overrides,
 });
@@ -53,6 +55,7 @@ describe('computeScore', () => {
     expect(score).toEqual({
       ci: 30,
       reviews: 30,
+      reviewPenalty: 0,
       conflicts: 20,
       staleness: 20,
       total: 100,
@@ -85,9 +88,38 @@ describe('computeScore', () => {
     expect(score).toEqual({
       ci: 30,
       reviews: 0,
+      reviewPenalty: 0,
       conflicts: 0,
       staleness: 20,
       total: 50,
+    });
+  });
+
+  it('boosts review score via coverage when bot comments are addressed', () => {
+    setNow(fixedNow);
+    const pr = basePr({
+      statusCheckRollup: [{ name: 'ci', conclusion: 'SUCCESS', status: 'COMPLETED' }],
+      reviewDecision: '', // no human review → base would be 10
+      mergeable: 'MERGEABLE',
+      updatedAt: new Date(fixedNow - 2 * 60 * 60 * 1000).toISOString(),
+      structuredConversationComments: [
+        { author: 'claude[bot]', createdAt: '2026-02-20T10:00:00Z', body: 'Fix this' },
+        { author: 'coderabbitai[bot]', createdAt: '2026-02-20T10:05:00Z', body: 'Also this' },
+      ],
+      commitDates: [
+        { author: 'alice', date: '2026-02-20T10:10:00Z' },
+      ],
+    });
+
+    const score = computeScore(pr);
+    // 2/2 addressed → coverage=100% → reviews=30, boosted from base 10
+    expect(score).toEqual({
+      ci: 30,
+      reviews: 30,
+      reviewPenalty: 20,
+      conflicts: 20,
+      staleness: 20,
+      total: 100,
     });
   });
 });
@@ -133,14 +165,116 @@ describe('scoreCi', () => {
 });
 
 describe('scoreReviews', () => {
-  it('scores approvals and changes requested', () => {
-    expect(scoreReviews('APPROVED')).toBe(30);
-    expect(scoreReviews('CHANGES_REQUESTED')).toBe(0);
+  it('scores approvals and changes requested (no bot comments)', () => {
+    expect(scoreReviews('APPROVED')).toEqual({ score: 30, penalty: 0 });
+    expect(scoreReviews('CHANGES_REQUESTED')).toEqual({ score: 0, penalty: 0 });
   });
 
-  it('scores review required and defaults', () => {
-    expect(scoreReviews('REVIEW_REQUIRED')).toBe(10);
-    expect(scoreReviews('')).toBe(10);
+  it('scores review required and defaults (no bot comments)', () => {
+    expect(scoreReviews('REVIEW_REQUIRED')).toEqual({ score: 10, penalty: 0 });
+    expect(scoreReviews('')).toEqual({ score: 10, penalty: 0 });
+  });
+
+  it('returns unchanged score when no bot comments exist', () => {
+    const result = scoreReviews('APPROVED', [], [], 'alice');
+    expect(result).toEqual({ score: 30, penalty: 0 });
+  });
+
+  it('returns unchanged score when all bot comments are addressed', () => {
+    const comments: ConversationComment[] = [
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:00:00Z', body: 'Fix this' },
+      { author: 'coderabbitai[bot]', createdAt: '2026-02-20T10:05:00Z', body: 'Also fix that' },
+    ];
+    const commits = [
+      { author: 'alice', date: '2026-02-20T10:10:00Z' }, // 10min after first, 5min after second
+    ];
+    const result = scoreReviews('APPROVED', comments, commits, 'alice');
+    expect(result).toEqual({ score: 30, penalty: 0 });
+  });
+
+  it('applies proportional penalty for partial coverage (7/10)', () => {
+    const comments: ConversationComment[] = Array.from({ length: 10 }, (_, i) => ({
+      author: 'claude[bot]',
+      createdAt: `2026-02-20T10:${String(i).padStart(2, '0')}:00Z`,
+      body: `Comment ${i}`,
+    }));
+    // Commit addresses first 7 comments (after 10:06 + 2min = 10:08), but not last 3 (10:07, 10:08, 10:09)
+    const commits = [
+      { author: 'alice', date: '2026-02-20T10:08:30Z' },
+    ];
+    const result = scoreReviews('APPROVED', comments, commits, 'alice');
+    // addressed: comments 0-6 (createdAt + 2min < 10:08:30) = 7
+    // coverage = 7/10 = 0.7, capped = min(30, round(30*0.7)) = 21
+    expect(result).toEqual({ score: 21, penalty: -9 });
+  });
+
+  it('applies max penalty when no comments are addressed', () => {
+    const comments: ConversationComment[] = [
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:00:00Z', body: 'Fix this' },
+    ];
+    // No commits by PR author after the comment
+    const result = scoreReviews('APPROVED', comments, [], 'alice');
+    expect(result).toEqual({ score: 0, penalty: -30 });
+  });
+
+  it('excludes self-comments from count', () => {
+    const comments: ConversationComment[] = [
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:00:00Z', body: 'Bot comment' },
+      { author: 'alice', createdAt: '2026-02-20T10:01:00Z', body: 'Self comment' },
+    ];
+    // No commits — only bot comment counts, self-comment excluded
+    const result = scoreReviews('APPROVED', comments, [], 'alice');
+    // 1 actionable, 0 addressed → coverage=0, capped=0
+    expect(result).toEqual({ score: 0, penalty: -30 });
+  });
+
+  it('respects the 2-minute guard', () => {
+    const comments: ConversationComment[] = [
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:00:00Z', body: 'Fix this' },
+    ];
+    // Commit only 1 minute after comment — within 2-min guard, should NOT count
+    const commits = [
+      { author: 'alice', date: '2026-02-20T10:01:00Z' },
+    ];
+    const result = scoreReviews('APPROVED', comments, commits, 'alice');
+    expect(result).toEqual({ score: 0, penalty: -30 });
+  });
+
+  it('ignores non-bot comments', () => {
+    const comments: ConversationComment[] = [
+      { author: 'human-reviewer', createdAt: '2026-02-20T10:00:00Z', body: 'Human comment' },
+    ];
+    const result = scoreReviews('APPROVED', comments, [], 'alice');
+    // No actionable bot comments → unchanged
+    expect(result).toEqual({ score: 30, penalty: 0 });
+  });
+
+  it('coverage can boost score above base when comments are addressed', () => {
+    const comments: ConversationComment[] = [
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:00:00Z', body: 'Fix this' },
+      { author: 'coderabbitai[bot]', createdAt: '2026-02-20T10:05:00Z', body: 'Also fix that' },
+    ];
+    const commits = [
+      { author: 'alice', date: '2026-02-20T10:10:00Z' },
+    ];
+    // REVIEW_REQUIRED base=10, but 100% coverage → score=30 (boosted above base)
+    const result = scoreReviews('REVIEW_REQUIRED', comments, commits, 'alice');
+    expect(result).toEqual({ score: 30, penalty: 20 });
+  });
+
+  it('partial coverage with low base gives proportional score', () => {
+    const comments: ConversationComment[] = [
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:00:00Z', body: 'Comment 1' },
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:05:00Z', body: 'Comment 2' },
+      { author: 'claude[bot]', createdAt: '2026-02-20T10:10:00Z', body: 'Comment 3' },
+    ];
+    // Only addresses first 2 comments
+    const commits = [
+      { author: 'alice', date: '2026-02-20T10:08:00Z' },
+    ];
+    // 2/3 addressed → coverage=0.67 → round(30*0.67)=20, base was 10
+    const result = scoreReviews('REVIEW_REQUIRED', comments, commits, 'alice');
+    expect(result).toEqual({ score: 20, penalty: 10 });
   });
 });
 

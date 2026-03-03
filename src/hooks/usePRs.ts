@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PR } from '../types.js';
 import { REPOS, isBotAuthor } from '../types.js';
-import { listAllOpenPRs, getReviewComments, getConversationComments } from '../github.js';
+import { listAllOpenPRs, getReviewComments, getConversationComments, getStructuredConversationComments, getCommitDates } from '../github.js';
 import { computeScore } from '../scoring.js';
 
 export type SortBy = 'score' | 'updated' | 'created';
@@ -35,11 +35,13 @@ export function usePRs(): UsePRsResult {
       const { prs: rawPRs, errors } = await listAllOpenPRs(REPOS);
       // Fetch review comments and conversation comments for all PRs in parallel
       const withComments = await Promise.all(rawPRs.map(async pr => {
-        const [reviewComments, conversationComments] = await Promise.all([
+        const [reviewComments, conversationComments, structuredConversationComments, commitDates] = await Promise.all([
           getReviewComments(pr.repo, pr.number),
           getConversationComments(pr.repo, pr.number),
+          getStructuredConversationComments(pr.repo, pr.number),
+          getCommitDates(pr.repo, pr.number),
         ]);
-        return { ...pr, reviewComments, conversationComments, reviewVerdict: null as string | null };
+        return { ...pr, reviewComments, conversationComments, structuredConversationComments, commitDates, reviewVerdict: null as string | null };
       }));
       const scored: PR[] = withComments.map(pr => {
         const scoreBreakdown = computeScore(pr);

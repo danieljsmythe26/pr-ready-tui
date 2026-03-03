@@ -92,7 +92,8 @@ export function PRDetail({ pr, boxWidth, scrollOffset, leftBorder = true }: PRDe
   lines.push(<Text key="s2" dimColor>{lb + ' '.repeat(innerWidth) + '│'}</Text>);
 
   // Score breakdown
-  const scoreText = `Score: ${pr.score}/100  [CI:${b.ci} Rev:${b.reviews} Merge:${b.conflicts} Fresh:${b.staleness}]`;
+  const penaltySuffix = b.reviewPenalty < 0 ? `(${b.reviewPenalty})` : '';
+  const scoreText = `Score: ${pr.score}/100  [CI:${b.ci} Rev:${b.reviews}${penaltySuffix} Merge:${b.conflicts} Fresh:${b.staleness}]`;
   lines.push(
     <Text key="score">
       <Text dimColor>{lb + '  '}</Text>
@@ -102,6 +103,7 @@ export function PRDetail({ pr, boxWidth, scrollOffset, leftBorder = true }: PRDe
       <Text dimColor>{'  ['}</Text>
       <Text dimColor>{'CI:'}</Text><Text color={b.ci >= 20 ? 'green' : b.ci > 0 ? 'yellow' : 'red'}>{b.ci}</Text>
       <Text dimColor>{' Rev:'}</Text><Text color={b.reviews >= 20 ? 'green' : b.reviews > 0 ? 'yellow' : 'red'}>{b.reviews}</Text>
+      {b.reviewPenalty < 0 && <Text color="red">{'(' + b.reviewPenalty + ')'}</Text>}
       <Text dimColor>{' Merge:'}</Text><Text color={b.conflicts >= 15 ? 'green' : b.conflicts > 0 ? 'yellow' : 'red'}>{b.conflicts}</Text>
       <Text dimColor>{' Fresh:'}</Text><Text color={b.staleness >= 15 ? 'green' : b.staleness > 0 ? 'yellow' : 'red'}>{b.staleness}</Text>
       <Text dimColor>{']'}</Text>
