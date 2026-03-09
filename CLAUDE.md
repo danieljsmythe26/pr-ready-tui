@@ -45,11 +45,11 @@ TypeScript TUI app built with **Ink** (React for terminal). A PR readiness dashb
 ## Development Commands
 
 ```bash
-# Development (requires PRT_REPOS_DIR for agent spawning)
-PRT_REPOS_DIR=~/Documents/coding npm run dev
+# Development
+npm run dev
 
 # Testing
-npm test              # vitest run (18 tests)
+npm test              # vitest run
 npm run test:watch    # vitest watch mode
 
 # Type checking
@@ -95,10 +95,7 @@ src/
 ```
 
 ### Monitored Repos
-Configured in `src/types.ts` → `REPOS` array:
-- `danieljsmythe26/ai-estimates-app`
-- `danieljsmythe26/design-build-automation`
-- `danieljsmythe26/ashton-paul`
+Configured via `PRT_REPOS` env var or `.pr-ready.json` config file. See README for setup.
 
 ---
 
@@ -118,4 +115,3 @@ All GitHub access goes through the `gh` CLI (not direct API calls). The `gh()` a
 ## Branch Strategy
 - **`main`** — stable releases
 - **Feature branches** — PRs against main
-- Current active branch: `feature/oc-94-v2-completions`

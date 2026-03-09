@@ -5,14 +5,56 @@ export interface RepoConfig {
 }
 
 import { homedir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 
 export const CODING_DIR = process.env.PRT_REPOS_DIR || `${homedir()}/Documents/coding`;
 
-export const REPOS: RepoConfig[] = [
-  { owner: 'danieljsmythe26', repo: 'ai-estimates-app' },
-  { owner: 'danieljsmythe26', repo: 'design-build-automation' },
-  { owner: 'danieljsmythe26', repo: 'ashton-paul' },
-];
+/**
+ * Load repos from (in priority order):
+ *   1. PRT_REPOS env var — comma-separated "owner/repo" strings
+ *   2. .pr-ready.json config file in cwd or home dir
+ *   3. Empty array (shows setup instructions)
+ */
+function loadRepos(): RepoConfig[] {
+  // 1. Environment variable
+  const envRepos = process.env.PRT_REPOS;
+  if (envRepos) {
+    return envRepos.split(',').map(s => s.trim()).filter(Boolean).map(entry => {
+      const [owner, repo] = entry.split('/');
+      if (!owner || !repo) {
+        throw new Error(`Invalid PRT_REPOS entry "${entry}" — expected "owner/repo" format`);
+      }
+      return { owner, repo };
+    });
+  }
+
+  // 2. Config file (.pr-ready.json)
+  const candidates = [
+    path.join(process.cwd(), '.pr-ready.json'),
+    path.join(homedir(), '.pr-ready.json'),
+  ];
+  for (const configPath of candidates) {
+    if (existsSync(configPath)) {
+      const raw = JSON.parse(readFileSync(configPath, 'utf-8'));
+      if (Array.isArray(raw.repos)) {
+        return raw.repos.map((entry: string | RepoConfig) => {
+          if (typeof entry === 'string') {
+            const [owner, repo] = entry.split('/');
+            if (!owner || !repo) throw new Error(`Invalid repo "${entry}" in ${configPath}`);
+            return { owner, repo };
+          }
+          return entry;
+        });
+      }
+    }
+  }
+
+  // 3. No config found
+  return [];
+}
+
+export const REPOS: RepoConfig[] = loadRepos();
 
 export interface PR {
   number: number;

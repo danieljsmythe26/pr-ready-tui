@@ -12,7 +12,7 @@ describe('isBotAuthor', () => {
   });
 
   it('returns false for non-bot users', () => {
-    expect(isBotAuthor('danieljsmythe26')).toBe(false);
+    expect(isBotAuthor('some-human-user')).toBe(false);
     expect(isBotAuthor('some-random-user')).toBe(false);
   });
 

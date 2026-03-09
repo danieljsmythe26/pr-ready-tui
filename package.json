@@ -21,9 +21,19 @@
     "type": "git",
     "url": "git+https://github.com/danieljsmythe26/pr-ready-tui.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "github",
+    "pull-request",
+    "tui",
+    "dashboard",
+    "ink",
+    "cli",
+    "ai-agents",
+    "code-review",
+    "devtools"
+  ],
+  "author": "Daniel Smythe",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/danieljsmythe26/pr-ready-tui/issues"
   },
