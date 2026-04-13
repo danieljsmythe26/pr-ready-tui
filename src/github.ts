@@ -5,19 +5,50 @@ import type { PR, CICheck, ReviewComment, ConversationComment, RepoConfig } from
 const execFileAsync = promisify(execFile);
 
 const MAX_BUFFER = 10 * 1024 * 1024; // 10MB
+const GH_TIMEOUT = 30_000; // 30s
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [1000, 3000]; // 1s, 3s backoff
+
+function isTransientError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return /unexpected EOF|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up/i.test(msg);
+}
+
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt < MAX_RETRIES && isTransientError(error)) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]!));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
 
 async function gh<T>(args: string[]): Promise<T> {
-  const result = await execFileAsync('gh', args, {
-    maxBuffer: MAX_BUFFER,
+  return withRetry(async () => {
+    const result = await execFileAsync('gh', args, {
+      maxBuffer: MAX_BUFFER,
+      timeout: GH_TIMEOUT,
+    });
+    return JSON.parse(result.stdout);
   });
-  return JSON.parse(result.stdout);
 }
 
 async function ghRaw(args: string[]): Promise<string> {
-  const result = await execFileAsync('gh', args, {
-    maxBuffer: MAX_BUFFER,
+  return withRetry(async () => {
+    const result = await execFileAsync('gh', args, {
+      maxBuffer: MAX_BUFFER,
+      timeout: GH_TIMEOUT,
+    });
+    return result.stdout.trim();
   });
-  return result.stdout.trim();
 }
 
 interface RawPR {
