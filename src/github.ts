@@ -41,14 +41,15 @@ async function gh<T>(args: string[]): Promise<T> {
   });
 }
 
-async function ghRaw(args: string[]): Promise<string> {
-  return withRetry(async () => {
+async function ghRaw(args: string[], opts: { retry?: boolean } = {}): Promise<string> {
+  const run = async () => {
     const result = await execFileAsync('gh', args, {
       maxBuffer: MAX_BUFFER,
       timeout: GH_TIMEOUT,
     });
     return result.stdout.trim();
-  });
+  };
+  return opts.retry === false ? run() : withRetry(run);
 }
 
 interface RawPR {
@@ -201,7 +202,7 @@ export async function toggleLabel(
     'pr', 'edit', String(prNumber),
     '--repo', `${repo.owner}/${repo.repo}`,
     flag, label,
-  ]);
+  ], { retry: false });
   return { action: hasLabel ? 'removed' : 'added' };
 }
 

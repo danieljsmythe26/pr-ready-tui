@@ -64,8 +64,8 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, condensed
 
   // Truncate error to fit in a banner line
   // account for "│  " (3) + "[!] " (4) prefix and " │" (2) suffix = 9
-  const bannerMaxLen = innerWidth - 9;
-  const truncatedError = error && error.length > bannerMaxLen
+  const bannerMaxLen = Math.max(0, innerWidth - 9);
+  const truncatedError = error && bannerMaxLen > 0 && error.length > bannerMaxLen
     ? error.slice(0, bannerMaxLen - 1) + '…'
     : error;
 
@@ -77,7 +77,7 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, condensed
           <Text>
             <Text dimColor>{'│  '}</Text>
             <Text color="yellow">{'[!] '}{truncatedError}</Text>
-            <Text dimColor>{' '.repeat(Math.max(1, innerWidth - 7 - (truncatedError?.length ?? 0))) + '│'}</Text>
+            <Text dimColor>{' '.repeat(Math.max(0, innerWidth - 7 - (truncatedError?.length ?? 0))) + '│'}</Text>
           </Text>
         </>
       )}
