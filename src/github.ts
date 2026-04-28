@@ -5,19 +5,51 @@ import type { PR, CICheck, ReviewComment, ConversationComment, RepoConfig } from
 const execFileAsync = promisify(execFile);
 
 const MAX_BUFFER = 10 * 1024 * 1024; // 10MB
+const GH_TIMEOUT = 30_000; // 30s
+const MAX_RETRIES = 2;
+const RETRY_DELAYS = [1000, 3000]; // 1s, 3s backoff
 
-async function gh<T>(args: string[]): Promise<T> {
-  const result = await execFileAsync('gh', args, {
-    maxBuffer: MAX_BUFFER,
-  });
-  return JSON.parse(result.stdout);
+function isTransientError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return /unexpected EOF|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up/i.test(msg);
 }
 
-async function ghRaw(args: string[]): Promise<string> {
-  const result = await execFileAsync('gh', args, {
-    maxBuffer: MAX_BUFFER,
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt < MAX_RETRIES && isTransientError(error)) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]!));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
+async function gh<T>(args: string[]): Promise<T> {
+  return withRetry(async () => {
+    const result = await execFileAsync('gh', args, {
+      maxBuffer: MAX_BUFFER,
+      timeout: GH_TIMEOUT,
+    });
+    return JSON.parse(result.stdout);
   });
-  return result.stdout.trim();
+}
+
+async function ghRaw(args: string[], opts: { retry?: boolean } = {}): Promise<string> {
+  const run = async () => {
+    const result = await execFileAsync('gh', args, {
+      maxBuffer: MAX_BUFFER,
+      timeout: GH_TIMEOUT,
+    });
+    return result.stdout.trim();
+  };
+  return opts.retry === false ? run() : withRetry(run);
 }
 
 interface RawPR {
@@ -170,7 +202,7 @@ export async function toggleLabel(
     'pr', 'edit', String(prNumber),
     '--repo', `${repo.owner}/${repo.repo}`,
     flag, label,
-  ]);
+  ], { retry: false });
   return { action: hasLabel ? 'removed' : 'added' };
 }
 

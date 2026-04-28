@@ -29,7 +29,7 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, condensed
     );
   }
 
-  if (error) {
+  if (error && prs.length === 0) {
     return (
       <Box flexDirection="column">
         <Text dimColor>{'│' + ' '.repeat(innerWidth) + '│'}</Text>
@@ -43,7 +43,7 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, condensed
     );
   }
 
-  if (prs.length === 0) {
+  if (!error && prs.length === 0) {
     return (
       <Box flexDirection="column">
         <Text dimColor>{'│' + ' '.repeat(innerWidth) + '│'}</Text>
@@ -62,8 +62,25 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, condensed
     ? '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 40)) + 'AGE CI R M'
     : '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 53)) + 'AUTHOR       AGE CI R M';
 
+  // Truncate error to fit in a banner line
+  // account for "│  " (3) + "[!] " (4) prefix and " │" (2) suffix = 9
+  const bannerMaxLen = Math.max(0, innerWidth - 9);
+  const truncatedError = error && bannerMaxLen > 0 && error.length > bannerMaxLen
+    ? error.slice(0, bannerMaxLen - 1) + '…'
+    : error;
+
   return (
     <Box flexDirection="column">
+      {error && (
+        <>
+          <Text dimColor>{'│' + ' '.repeat(innerWidth) + '│'}</Text>
+          <Text>
+            <Text dimColor>{'│  '}</Text>
+            <Text color="yellow">{'[!] '}{truncatedError}</Text>
+            <Text dimColor>{' '.repeat(Math.max(0, innerWidth - 7 - (truncatedError?.length ?? 0))) + '│'}</Text>
+          </Text>
+        </>
+      )}
       <Text dimColor>{'│' + ' '.repeat(innerWidth) + '│'}</Text>
       <Text>
         <Text dimColor>{'│'}</Text>
