@@ -95,8 +95,8 @@ export function PRCard({ pr, selected, boxWidth, condensed }: PRCardProps) {
     ? 3 + 1 + 12 + 1 + 5 + 1 + 3 + 1 + 5 + 1 + 2
     : 3 + 1 + 12 + 1 + 5 + 1 + 12 + 1 + 3 + 1 + 5 + 1 + 2;
   const draftTag = pr.isDraft ? 'DRAFT ' : '';
-  const titleMax = innerWidth - metaLen - 4 - draftTag.length; // 4 for padding/borders
-  const truncTitle = pr.title.length > titleMax ? pr.title.slice(0, titleMax - 1) + '~' : pr.title.padEnd(titleMax);
+  const titleMax = Math.max(1, innerWidth - metaLen - 4 - draftTag.length); // 4 for padding/borders
+  const truncTitle = cliTruncate(pr.title, titleMax, { truncationCharacter: '~' }).padEnd(titleMax);
   const title = draftTag + truncTitle;
 
   const prefix = selected ? '\u258C ' : '  ';

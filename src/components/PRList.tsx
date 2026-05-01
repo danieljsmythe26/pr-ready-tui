@@ -26,6 +26,10 @@ type ListItem =
   | { type: 'header'; repo: string }
   | { type: 'pr'; pr: PR; prIndex: number };
 
+function repoKey(pr: PR): string {
+  return `${pr.repo.owner}/${pr.repo.repo}`;
+}
+
 function buildItems(prs: PR[], groupByRepo: boolean): ListItem[] {
   if (!groupByRepo) {
     return prs.map((pr, prIndex) => ({ type: 'pr', pr, prIndex }));
@@ -33,9 +37,10 @@ function buildItems(prs: PR[], groupByRepo: boolean): ListItem[] {
 
   const byRepo = new Map<string, Array<{ pr: PR; prIndex: number }>>();
   prs.forEach((pr, prIndex) => {
-    const group = byRepo.get(pr.repo.repo) ?? [];
+    const key = repoKey(pr);
+    const group = byRepo.get(key) ?? [];
     group.push({ pr, prIndex });
-    byRepo.set(pr.repo.repo, group);
+    byRepo.set(key, group);
   });
 
   return Array.from(byRepo.entries()).flatMap(([repo, group]) => [
@@ -120,8 +125,8 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, height, c
     ? error.slice(0, bannerMaxLen - 1) + '…'
     : error;
   const staticLines = (error ? 2 : 0) + 3;
-  const visibleRows = Math.max(0, (height ?? staticLines + prs.length) - staticLines);
   const items = buildItems(prs, groupByRepo);
+  const visibleRows = Math.max(0, (height ?? staticLines + items.length) - staticLines);
   const selectedItemIndex = Math.max(0, items.findIndex(item => item.type === 'pr' && item.prIndex === selectedIndex));
   const windowStart = selectedItemIndex >= visibleRows
     ? Math.max(0, selectedItemIndex - visibleRows + 1)
@@ -150,7 +155,7 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, height, c
       {visibleItems.map(item => (
         item.type === 'header'
           ? renderGroupHeader(item.repo, innerWidth)
-          : <PRCard key={`${item.pr.repo.repo}-${item.pr.number}`} pr={item.pr} selected={item.prIndex === selectedIndex} boxWidth={boxWidth} condensed={condensed} />
+          : <PRCard key={`${repoKey(item.pr)}-${item.pr.number}`} pr={item.pr} selected={item.prIndex === selectedIndex} boxWidth={boxWidth} condensed={condensed} />
       ))}
       {fillLines(innerWidth, visibleRows - visibleItems.length, 'pr-fill')}
     </Box>

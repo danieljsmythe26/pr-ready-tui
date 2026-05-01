@@ -98,15 +98,22 @@ export function PRDetail({ pr, boxWidth, scrollOffset, viewportHeight = 20, left
       local.ahead > 0 ? `ahead ${local.ahead}` : null,
       local.behind > 0 ? `behind ${local.behind}` : null,
     ].filter(Boolean);
-    const localText = `local: ${local.marker} ${statusParts.join(' · ')}`;
-    const localDisplay = localText.slice(0, innerWidth - 4);
+    const statusText = statusParts.join(' · ').slice(0, Math.max(0, innerWidth - 12 - local.marker.length));
+    const displayText = `local: ${local.marker} ${statusText}`;
+    const markerColor =
+      local.marker === 'W' ? 'green'
+      : local.marker === 'W*' || local.marker === 'L↓' || local.marker === 'L↕' ? 'yellow'
+      : local.marker === 'L↑' ? 'magenta'
+      : local.marker === 'L' ? 'cyan'
+      : 'gray';
+
     lines.push(
       <Text key="local">
         <Text dimColor>{lb + '  '}</Text>
         <Text dimColor>{'local: '}</Text>
-        <Text color={local.marker.startsWith('W') ? 'green' : 'cyan'} bold={local.marker !== 'L'}>{local.marker}</Text>
-        <Text dimColor>{' '}{statusParts.join(' · ').slice(0, Math.max(0, innerWidth - 12 - local.marker.length))}</Text>
-        <Text dimColor>{pad(localDisplay, innerWidth) + '│'}</Text>
+        <Text color={markerColor} bold={local.marker !== 'L'}>{local.marker}</Text>
+        <Text dimColor>{' '}{statusText}</Text>
+        <Text dimColor>{pad(displayText, innerWidth) + '│'}</Text>
       </Text>
     );
   }

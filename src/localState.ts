@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import type { LocalPRState, PR, RepoConfig } from './types.js';
-import { CODING_DIR } from './types.js';
+import { CODING_DIR, REPOS } from './types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -16,8 +16,17 @@ const EMPTY_STATE: LocalPRState = {
   behind: 0,
 };
 
-function repoPath(repo: RepoConfig): string {
-  return repo.localPath ?? path.join(CODING_DIR, repo.repo);
+export function repoPath(repo: RepoConfig): string {
+  if (repo.localPath) return repo.localPath;
+
+  const ownerQualifiedPath = path.join(CODING_DIR, repo.owner, repo.repo);
+  const legacyPath = path.join(CODING_DIR, repo.repo);
+  const hasDuplicateName = REPOS.filter(r => r.repo === repo.repo).length > 1;
+
+  if (existsSync(ownerQualifiedPath) || hasDuplicateName) {
+    return ownerQualifiedPath;
+  }
+  return legacyPath;
 }
 
 async function git(repoDir: string, args: string[]): Promise<string> {
@@ -37,10 +46,11 @@ async function hasBranch(repoDir: string, branch: string): Promise<boolean> {
   }
 }
 
-function parseWorktreeForBranch(output: string, branch: string): string | null {
-  const records = output.split('\n\n').filter(Boolean);
+export function parseWorktreeForBranch(output: string, branch: string): string | null {
+  const normalized = output.replace(/\r\n/g, '\n');
+  const records = normalized.split('\n\n').filter(Boolean);
   for (const record of records) {
-    const lines = record.split('\n');
+    const lines = record.split('\n').map(line => line.trim());
     const worktree = lines.find(line => line.startsWith('worktree '))?.slice('worktree '.length);
     const branchRef = lines.find(line => line.startsWith('branch '))?.slice('branch '.length);
     if (worktree && branchRef === `refs/heads/${branch}`) {
@@ -70,9 +80,10 @@ async function isDirty(worktreePath: string): Promise<boolean> {
 
 async function syncCounts(repoDir: string, branch: string): Promise<{ ahead: number; behind: number }> {
   try {
-    const upstream = `origin/${branch}`;
-    await git(repoDir, ['show-ref', '--verify', '--quiet', `refs/remotes/${upstream}`]);
-    const output = await git(repoDir, ['rev-list', '--left-right', '--count', `${branch}...${upstream}`]);
+    const localRef = `refs/heads/${branch}`;
+    const upstreamRef = `refs/remotes/origin/${branch}`;
+    await git(repoDir, ['show-ref', '--verify', '--quiet', upstreamRef]);
+    const output = await git(repoDir, ['rev-list', '--left-right', '--count', `${localRef}...${upstreamRef}`]);
     const [aheadRaw, behindRaw] = output.split(/\s+/);
     return {
       ahead: Number(aheadRaw ?? 0),
@@ -83,7 +94,7 @@ async function syncCounts(repoDir: string, branch: string): Promise<{ ahead: num
   }
 }
 
-function markerFor(state: Omit<LocalPRState, 'marker'>): LocalPRState['marker'] {
+export function markerFor(state: Omit<LocalPRState, 'marker'>): LocalPRState['marker'] {
   if (state.worktreePath) return state.dirty ? 'W*' : 'W';
   if (!state.branchExists) return '-';
   if (state.ahead > 0 && state.behind > 0) return 'L↕';
@@ -94,7 +105,7 @@ function markerFor(state: Omit<LocalPRState, 'marker'>): LocalPRState['marker'] 
 
 export async function getLocalPRState(pr: Pick<PR, 'headRefName' | 'repo'>): Promise<LocalPRState> {
   const dir = repoPath(pr.repo);
-  if (!existsSync(dir)) return EMPTY_STATE;
+  if (!existsSync(dir)) return { ...EMPTY_STATE };
 
   const branchExists = await hasBranch(dir, pr.headRefName);
   const worktreePath = branchExists ? await findWorktree(dir, pr.headRefName) : null;

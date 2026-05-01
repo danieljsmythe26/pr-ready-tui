@@ -7,6 +7,25 @@ import { computeScore } from '../scoring.js';
 
 export type SortBy = 'score' | 'updated' | 'created';
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(items[index]!, index);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
 interface UsePRsResult {
   prs: PR[];
   loading: boolean;
@@ -34,15 +53,16 @@ export function usePRs(): UsePRsResult {
     setError(null);
     try {
       const { prs: rawPRs, errors } = await listAllOpenPRs(REPOS);
+      const localStates = await mapWithConcurrency(rawPRs, 4, pr => getLocalPRState(pr));
       // Fetch review comments and conversation comments for all PRs in parallel
-      const withComments = await Promise.all(rawPRs.map(async pr => {
-        const [reviewComments, conversationComments, structuredConversationComments, commitDates, localState] = await Promise.all([
+      const withComments = await Promise.all(rawPRs.map(async (pr, index) => {
+        const [reviewComments, conversationComments, structuredConversationComments, commitDates] = await Promise.all([
           getReviewComments(pr.repo, pr.number),
           getConversationComments(pr.repo, pr.number),
           getStructuredConversationComments(pr.repo, pr.number),
           getCommitDates(pr.repo, pr.number),
-          getLocalPRState(pr),
         ]);
+        const localState = localStates[index]!;
         return { ...pr, reviewComments, conversationComments, structuredConversationComments, commitDates, localState, reviewVerdict: null as string | null };
       }));
       const scored: PR[] = withComments.map(pr => {
@@ -97,11 +117,11 @@ export function usePRs(): UsePRsResult {
     if (repoFilter) {
       filtered = filtered.filter(pr => pr.repo.repo === repoFilter);
     }
-    const repoOrder = new Map(REPOS.map((repo, index) => [repo.repo, index]));
+    const repoOrder = new Map(REPOS.map((repo, index) => [`${repo.owner}/${repo.repo}`, index]));
     filtered.sort((a, b) => {
       if (repoFilter === null) {
-        const repoDelta = (repoOrder.get(a.repo.repo) ?? Number.MAX_SAFE_INTEGER)
-          - (repoOrder.get(b.repo.repo) ?? Number.MAX_SAFE_INTEGER);
+        const repoDelta = (repoOrder.get(`${a.repo.owner}/${a.repo.repo}`) ?? Number.MAX_SAFE_INTEGER)
+          - (repoOrder.get(`${b.repo.owner}/${b.repo.repo}`) ?? Number.MAX_SAFE_INTEGER);
         if (repoDelta !== 0) return repoDelta;
       }
       return compareBySort(a, b);
