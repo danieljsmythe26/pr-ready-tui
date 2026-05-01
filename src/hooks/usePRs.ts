@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PR } from '../types.js';
 import { REPOS, isBotAuthor } from '../types.js';
 import { listAllOpenPRs, getReviewComments, getConversationComments, getStructuredConversationComments, getCommitDates } from '../github.js';
+import { getLocalPRState } from '../localState.js';
 import { computeScore } from '../scoring.js';
 
 export type SortBy = 'score' | 'updated' | 'created';
@@ -35,13 +36,14 @@ export function usePRs(): UsePRsResult {
       const { prs: rawPRs, errors } = await listAllOpenPRs(REPOS);
       // Fetch review comments and conversation comments for all PRs in parallel
       const withComments = await Promise.all(rawPRs.map(async pr => {
-        const [reviewComments, conversationComments, structuredConversationComments, commitDates] = await Promise.all([
+        const [reviewComments, conversationComments, structuredConversationComments, commitDates, localState] = await Promise.all([
           getReviewComments(pr.repo, pr.number),
           getConversationComments(pr.repo, pr.number),
           getStructuredConversationComments(pr.repo, pr.number),
           getCommitDates(pr.repo, pr.number),
+          getLocalPRState(pr),
         ]);
-        return { ...pr, reviewComments, conversationComments, structuredConversationComments, commitDates, reviewVerdict: null as string | null };
+        return { ...pr, reviewComments, conversationComments, structuredConversationComments, commitDates, localState, reviewVerdict: null as string | null };
       }));
       const scored: PR[] = withComments.map(pr => {
         const scoreBreakdown = computeScore(pr);
@@ -84,18 +86,28 @@ export function usePRs(): UsePRsResult {
     ));
   }, []);
 
+  const compareBySort = useCallback((a: PR, b: PR) => {
+    if (sortBy === 'updated') return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    if (sortBy === 'created') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return a.score - b.score;
+  }, [sortBy]);
+
   const visiblePRs = useMemo(() => {
     let filtered = hideBots ? allPRs.filter(pr => !isBotAuthor(pr.author)) : [...allPRs];
     if (repoFilter) {
       filtered = filtered.filter(pr => pr.repo.repo === repoFilter);
     }
+    const repoOrder = new Map(REPOS.map((repo, index) => [repo.repo, index]));
     filtered.sort((a, b) => {
-      if (sortBy === 'updated') return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      if (sortBy === 'created') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      return a.score - b.score;
+      if (repoFilter === null) {
+        const repoDelta = (repoOrder.get(a.repo.repo) ?? Number.MAX_SAFE_INTEGER)
+          - (repoOrder.get(b.repo.repo) ?? Number.MAX_SAFE_INTEGER);
+        if (repoDelta !== 0) return repoDelta;
+      }
+      return compareBySort(a, b);
     });
     return filtered;
-  }, [allPRs, hideBots, repoFilter, sortBy]);
+  }, [allPRs, compareBySort, hideBots, repoFilter]);
 
   return {
     prs: visiblePRs,

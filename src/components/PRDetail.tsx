@@ -90,6 +90,27 @@ export function PRDetail({ pr, boxWidth, scrollOffset, viewportHeight = 20, left
     </Text>
   );
 
+  if (pr.localState && pr.localState.marker !== '-') {
+    const local = pr.localState;
+    const statusParts = [
+      local.worktreePath ? `worktree: ${local.worktreePath}` : 'branch exists locally',
+      local.dirty ? 'dirty' : null,
+      local.ahead > 0 ? `ahead ${local.ahead}` : null,
+      local.behind > 0 ? `behind ${local.behind}` : null,
+    ].filter(Boolean);
+    const localText = `local: ${local.marker} ${statusParts.join(' · ')}`;
+    const localDisplay = localText.slice(0, innerWidth - 4);
+    lines.push(
+      <Text key="local">
+        <Text dimColor>{lb + '  '}</Text>
+        <Text dimColor>{'local: '}</Text>
+        <Text color={local.marker.startsWith('W') ? 'green' : 'cyan'} bold={local.marker !== 'L'}>{local.marker}</Text>
+        <Text dimColor>{' '}{statusParts.join(' · ').slice(0, Math.max(0, innerWidth - 12 - local.marker.length))}</Text>
+        <Text dimColor>{pad(localDisplay, innerWidth) + '│'}</Text>
+      </Text>
+    );
+  }
+
   lines.push(<Text key="s2" dimColor>{lb + ' '.repeat(innerWidth) + '│'}</Text>);
 
   // Score breakdown
