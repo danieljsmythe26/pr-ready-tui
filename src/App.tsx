@@ -20,28 +20,32 @@ const MAX_WIDTH = 200;
 const TWO_PANE_MIN = 120;
 const DETAIL_VIEWPORT = 20;
 const MAX_DETAIL_LINES = 500;
+const MIN_HEIGHT = 12;
 
-function useTerminalWidth(): number {
+function useTerminalSize(): { width: number; height: number } {
   const { stdout } = useStdout();
-  const [width, setWidth] = useState(() =>
-    Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, stdout?.columns ?? 90))
-  );
+  const readSize = useCallback(() => ({
+    width: Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, stdout?.columns ?? 90)),
+    height: Math.max(MIN_HEIGHT, stdout?.rows ?? 30),
+  }), [stdout]);
+
+  const [size, setSize] = useState(readSize);
 
   useEffect(() => {
     if (!stdout) return;
     const onResize = () => {
-      setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, stdout.columns ?? 90)));
+      setSize(readSize());
     };
     stdout.on('resize', onResize);
     return () => { stdout.off('resize', onResize); };
-  }, [stdout]);
+  }, [stdout, readSize]);
 
-  return width;
+  return size;
 }
 
 export function App() {
   const { exit } = useApp();
-  const BOX_WIDTH = useTerminalWidth();
+  const { width: BOX_WIDTH, height: terminalHeight } = useTerminalSize();
   const { prs, loading, error, refresh, hideBots, toggleBots, sortBy, toggleSort, repoFilter, cycleRepoFilter, updatePR } = usePRs();
 
   const [view, setView] = useState<View>('list');
@@ -133,9 +137,9 @@ export function App() {
         cycleRepoFilter();
         setSelectedPR(0);
       } else if (twoPane && input === 'u' && key.ctrl) {
-        pageUp(DETAIL_VIEWPORT);
+        pageUp(detailViewportHeight);
       } else if (twoPane && input === 'd' && key.ctrl) {
-        pageDown(MAX_DETAIL_LINES, DETAIL_VIEWPORT);
+        pageDown(MAX_DETAIL_LINES, detailViewportHeight);
       } else if (twoPane && input === 'y' && currentPR) {
         const cmd = process.platform === 'darwin' ? 'pbcopy' : 'xclip';
         const args = process.platform === 'darwin' ? [] : ['-selection', 'clipboard'];
@@ -180,11 +184,11 @@ export function App() {
       } else if (key.upArrow) {
         scrollUp();
       } else if (key.downArrow) {
-        scrollDown(MAX_DETAIL_LINES, DETAIL_VIEWPORT);
+        scrollDown(MAX_DETAIL_LINES, detailViewportHeight);
       } else if (input === 'u' && key.ctrl) {
-        pageUp(DETAIL_VIEWPORT);
+        pageUp(detailViewportHeight);
       } else if (input === 'd' && key.ctrl) {
-        pageDown(MAX_DETAIL_LINES, DETAIL_VIEWPORT);
+        pageDown(MAX_DETAIL_LINES, detailViewportHeight);
       } else if (input === 'y') {
         if (currentPR) {
           const cmd = process.platform === 'darwin' ? 'pbcopy' : 'xclip';
@@ -291,32 +295,40 @@ export function App() {
   const reviewDone = currentPR ? reviewedPRs.has(`${currentPR.repo.repo}-${currentPR.number}`) : false;
 
   const innerWidth = BOX_WIDTH - 2;
+  const statusLines = copyStatus || labelStatus || mergeStatus ? 1 : 0;
+  const chromeHeight = 3 + statusLines + 1; // header, bottom border, status bar, optional transient status
+  const contentHeight = Math.max(3, terminalHeight - chromeHeight);
+  const detailViewportHeight = Math.max(1, contentHeight);
 
   return (
     <Box flexDirection="column" padding={0}>
       <Header totalPRs={prs.length} hideBots={hideBots} loading={loading} boxWidth={BOX_WIDTH} sortBy={sortBy} repoFilter={repoFilter} splitAt={twoPane && view === 'list' ? leftWidth : undefined} />
 
       {view === 'list' && !twoPane && (
-        <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={BOX_WIDTH} />
+        <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={BOX_WIDTH} height={contentHeight} />
       )}
 
       {view === 'list' && twoPane && (
         <Box flexDirection="row">
           <Box flexDirection="column" width={leftWidth}>
-            <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={leftWidth} condensed />
+            <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={leftWidth} height={contentHeight} condensed />
           </Box>
           <Box flexDirection="column" width={rightWidth}>
             {currentPR ? (
-              <PRDetail pr={currentPR} boxWidth={rightWidth} scrollOffset={scrollOffset} leftBorder={false} />
+              <PRDetail pr={currentPR} boxWidth={rightWidth} scrollOffset={scrollOffset} viewportHeight={detailViewportHeight} leftBorder={false} />
             ) : (
-              <Text dimColor>{' '.repeat(rightWidth - 1) + '│'}</Text>
+              <>
+                {Array.from({ length: contentHeight }, (_, i) => (
+                  <Text key={i} dimColor>{' '.repeat(rightWidth - 1) + '│'}</Text>
+                ))}
+              </>
             )}
           </Box>
         </Box>
       )}
 
       {view === 'detail' && currentPR && (
-        <PRDetail pr={currentPR} boxWidth={BOX_WIDTH} scrollOffset={scrollOffset} />
+        <PRDetail pr={currentPR} boxWidth={BOX_WIDTH} scrollOffset={scrollOffset} viewportHeight={detailViewportHeight} />
       )}
 
       {view === 'agent-picker' && (

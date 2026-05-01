@@ -7,6 +7,7 @@ interface PRDetailProps {
   pr: PR;
   boxWidth: number;
   scrollOffset: number;
+  viewportHeight?: number;
   leftBorder?: boolean;
 }
 
@@ -41,7 +42,7 @@ function pad(text: string, innerWidth: number, leftPad: number = 2): string {
   return ' '.repeat(Math.max(1, remaining));
 }
 
-export function PRDetail({ pr, boxWidth, scrollOffset, leftBorder = true }: PRDetailProps) {
+export function PRDetail({ pr, boxWidth, scrollOffset, viewportHeight = 20, leftBorder = true }: PRDetailProps) {
   if (!pr) {
     return <Text color="red">No PR selected</Text>;
   }
@@ -294,21 +295,31 @@ export function PRDetail({ pr, boxWidth, scrollOffset, leftBorder = true }: PRDe
 
   lines.push(<Text key="s-end" dimColor>{lb + ' '.repeat(innerWidth) + '│'}</Text>);
 
-  // Scroll indicator
-  const VIEWPORT = 20;
   const totalLines = lines.length;
-  const visibleLines = lines.slice(scrollOffset, scrollOffset + VIEWPORT);
+  const indicatorLines = 2;
+  const contentHeight = Math.max(1, viewportHeight - indicatorLines);
+  const visibleLines = lines.slice(scrollOffset, scrollOffset + contentHeight);
   const canScrollUp = scrollOffset > 0;
-  const canScrollDown = scrollOffset + VIEWPORT < totalLines;
+  const canScrollDown = scrollOffset + contentHeight < totalLines;
+  const blankLines = Math.max(0, contentHeight - visibleLines.length);
+  const indicatorLeft = Math.max(0, Math.floor((innerWidth - 5) / 2));
+  const indicatorRight = Math.max(1, innerWidth - indicatorLeft - 5);
 
   return (
     <Box flexDirection="column">
-      {canScrollUp && (
-        <Text dimColor>{lb + ' '.repeat((innerWidth - 5) / 2) + '▲ ▲ ▲' + ' '.repeat(Math.max(1, innerWidth - (innerWidth - 5) / 2 - 5)) + '│'}</Text>
+      {canScrollUp ? (
+        <Text dimColor>{lb + ' '.repeat(indicatorLeft) + '▲ ▲ ▲' + ' '.repeat(indicatorRight) + '│'}</Text>
+      ) : (
+        <Text dimColor>{lb + ' '.repeat(innerWidth) + '│'}</Text>
       )}
       {visibleLines}
-      {canScrollDown && (
-        <Text dimColor>{lb + ' '.repeat(Math.floor((innerWidth - 5) / 2)) + '▼ ▼ ▼' + ' '.repeat(Math.max(1, Math.ceil((innerWidth - 5) / 2))) + '│'}</Text>
+      {Array.from({ length: blankLines }, (_, i) => (
+        <Text key={`detail-fill-${i}`} dimColor>{lb + ' '.repeat(innerWidth) + '│'}</Text>
+      ))}
+      {canScrollDown ? (
+        <Text dimColor>{lb + ' '.repeat(indicatorLeft) + '▼ ▼ ▼' + ' '.repeat(indicatorRight) + '│'}</Text>
+      ) : (
+        <Text dimColor>{lb + ' '.repeat(innerWidth) + '│'}</Text>
       )}
     </Box>
   );
