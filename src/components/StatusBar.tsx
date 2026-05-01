@@ -14,7 +14,7 @@ interface StatusBarProps {
 export function StatusBar({ view, hideBots, reviewDone, agentCopied, agentError, boxWidth }: StatusBarProps) {
   if (agentError) {
     return (
-      <Box marginTop={1}>
+      <Box>
         <Text color="red">Agent failed: {agentError}</Text>
       </Box>
     );
@@ -22,7 +22,7 @@ export function StatusBar({ view, hideBots, reviewDone, agentCopied, agentError,
 
   if (agentCopied) {
     return (
-      <Box marginTop={1}>
+      <Box>
         <Text>
           <Text color="green">Command copied! </Text>
           <Text dimColor>Paste in a new terminal to run agent</Text>
@@ -33,7 +33,7 @@ export function StatusBar({ view, hideBots, reviewDone, agentCopied, agentError,
 
   if (view === 'list') {
     return (
-      <Box marginTop={1}>
+      <Box>
         <Text>
           <Text dimColor>{'['}</Text><Text color="cyan">q</Text><Text dimColor>{'] quit  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">r</Text><Text dimColor>{'] refresh  '}</Text>
@@ -51,7 +51,7 @@ export function StatusBar({ view, hideBots, reviewDone, agentCopied, agentError,
 
   if (view === 'detail') {
     return (
-      <Box marginTop={1}>
+      <Box>
         <Text>
           <Text dimColor>{'['}</Text><Text color="cyan">Esc</Text><Text dimColor>{'] back  '}</Text>
           <Text dimColor>{'['}</Text><Text color="cyan">↑↓</Text><Text dimColor>{'] scroll  '}</Text>
