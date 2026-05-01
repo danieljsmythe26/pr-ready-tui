@@ -305,13 +305,13 @@ export function App() {
       <Header totalPRs={prs.length} hideBots={hideBots} loading={loading} boxWidth={BOX_WIDTH} sortBy={sortBy} repoFilter={repoFilter} splitAt={twoPane && view === 'list' ? leftWidth : undefined} />
 
       {view === 'list' && !twoPane && (
-        <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={BOX_WIDTH} height={contentHeight} />
+        <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={BOX_WIDTH} height={contentHeight} groupByRepo={repoFilter === null} />
       )}
 
       {view === 'list' && twoPane && (
         <Box flexDirection="row">
           <Box flexDirection="column" width={leftWidth}>
-            <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={leftWidth} height={contentHeight} condensed />
+            <PRList prs={prs} selectedIndex={selectedPR} loading={loading} error={error} boxWidth={leftWidth} height={contentHeight} condensed groupByRepo={repoFilter === null} />
           </Box>
           <Box flexDirection="column" width={rightWidth}>
             {currentPR ? (

@@ -83,6 +83,18 @@ export interface PR {
   structuredConversationComments: ConversationComment[];
   commitDates: { author: string; date: string }[];
   reviewVerdict: string | null;
+  localState?: LocalPRState;
+}
+
+export type LocalPRMarker = '-' | 'L' | 'W' | 'W*' | 'L↑' | 'L↓' | 'L↕';
+
+export interface LocalPRState {
+  marker: LocalPRMarker;
+  branchExists: boolean;
+  worktreePath: string | null;
+  dirty: boolean;
+  ahead: number;
+  behind: number;
 }
 
 export interface CICheck {

@@ -11,6 +11,7 @@ interface PRListProps {
   boxWidth: number;
   height?: number;
   condensed?: boolean;
+  groupByRepo?: boolean;
 }
 
 function blankLine(innerWidth: number, key: React.Key) {
@@ -21,7 +22,47 @@ function fillLines(innerWidth: number, count: number, keyPrefix: string) {
   return Array.from({ length: Math.max(0, count) }, (_, i) => blankLine(innerWidth, `${keyPrefix}-${i}`));
 }
 
-export function PRList({ prs, selectedIndex, loading, error, boxWidth, height, condensed }: PRListProps) {
+type ListItem =
+  | { type: 'header'; repo: string }
+  | { type: 'pr'; pr: PR; prIndex: number };
+
+function repoKey(pr: PR): string {
+  return `${pr.repo.owner}/${pr.repo.repo}`;
+}
+
+function buildItems(prs: PR[], groupByRepo: boolean): ListItem[] {
+  if (!groupByRepo) {
+    return prs.map((pr, prIndex) => ({ type: 'pr', pr, prIndex }));
+  }
+
+  const byRepo = new Map<string, Array<{ pr: PR; prIndex: number }>>();
+  prs.forEach((pr, prIndex) => {
+    const key = repoKey(pr);
+    const group = byRepo.get(key) ?? [];
+    group.push({ pr, prIndex });
+    byRepo.set(key, group);
+  });
+
+  return Array.from(byRepo.entries()).flatMap(([repo, group]) => [
+    { type: 'header' as const, repo },
+    ...group.map(({ pr, prIndex }) => ({ type: 'pr' as const, pr, prIndex })),
+  ]);
+}
+
+function renderGroupHeader(repo: string, innerWidth: number) {
+  const label = ` ${repo} `;
+  const pad = Math.max(0, innerWidth - label.length);
+  return (
+    <Text key={`repo-${repo}`}>
+      <Text dimColor>{'│'}</Text>
+      <Text bold color="cyan">{label}</Text>
+      <Text dimColor>{' '.repeat(pad)}</Text>
+      <Text dimColor>{'│'}</Text>
+    </Text>
+  );
+}
+
+export function PRList({ prs, selectedIndex, loading, error, boxWidth, height, condensed, groupByRepo = false }: PRListProps) {
   const innerWidth = boxWidth - 2;
 
   if (loading && prs.length === 0) {
@@ -74,8 +115,8 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, height, c
 
   // Column headers
   const headerLine = condensed
-    ? '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 40)) + 'AGE CI R M'
-    : '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 53)) + 'AUTHOR       AGE CI R M';
+    ? '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 44)) + 'AGE CI R M LOC'
+    : '  SCR REPO         #     TITLE' + ' '.repeat(Math.max(1, innerWidth - 57)) + 'AUTHOR       AGE CI R M LOC';
 
   // Truncate error to fit in a banner line
   // account for "│  " (3) + "[!] " (4) prefix and " │" (2) suffix = 9
@@ -84,11 +125,13 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, height, c
     ? error.slice(0, bannerMaxLen - 1) + '…'
     : error;
   const staticLines = (error ? 2 : 0) + 3;
-  const visibleRows = Math.max(0, (height ?? staticLines + prs.length) - staticLines);
-  const windowStart = selectedIndex >= visibleRows
-    ? Math.max(0, selectedIndex - visibleRows + 1)
+  const items = buildItems(prs, groupByRepo);
+  const visibleRows = Math.max(0, (height ?? staticLines + items.length) - staticLines);
+  const selectedItemIndex = Math.max(0, items.findIndex(item => item.type === 'pr' && item.prIndex === selectedIndex));
+  const windowStart = selectedItemIndex >= visibleRows
+    ? Math.max(0, selectedItemIndex - visibleRows + 1)
     : 0;
-  const visiblePRs = prs.slice(windowStart, windowStart + visibleRows);
+  const visibleItems = items.slice(windowStart, windowStart + visibleRows);
 
   return (
     <Box flexDirection="column">
@@ -109,10 +152,12 @@ export function PRList({ prs, selectedIndex, loading, error, boxWidth, height, c
         <Text dimColor>{'│'}</Text>
       </Text>
       <Text dimColor>{'│' + '─'.repeat(innerWidth) + '│'}</Text>
-      {visiblePRs.map((pr, i) => (
-        <PRCard key={`${pr.repo.repo}-${pr.number}`} pr={pr} selected={windowStart + i === selectedIndex} boxWidth={boxWidth} condensed={condensed} />
+      {visibleItems.map(item => (
+        item.type === 'header'
+          ? renderGroupHeader(item.repo, innerWidth)
+          : <PRCard key={`${repoKey(item.pr)}-${item.pr.number}`} pr={item.pr} selected={item.prIndex === selectedIndex} boxWidth={boxWidth} condensed={condensed} />
       ))}
-      {fillLines(innerWidth, visibleRows - visiblePRs.length, 'pr-fill')}
+      {fillLines(innerWidth, visibleRows - visibleItems.length, 'pr-fill')}
     </Box>
   );
 }
