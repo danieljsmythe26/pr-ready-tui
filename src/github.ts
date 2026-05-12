@@ -214,7 +214,9 @@ export async function toggleLabel(
  * `getStructuredConversationComments` already makes).
  */
 export function structuredToConversationString(comments: ConversationComment[]): string {
-  return comments.map(c => `${c.author} (${c.createdAt}):\n${c.body}\n---`).join('\n');
+  // Separator must be exactly `\n---\n` between blocks with no trailing `---`,
+  // so PRDetail's `.split('\n---\n')` parser yields clean blocks.
+  return comments.map(c => `${c.author} (${c.createdAt}):\n${c.body}`).join('\n---\n');
 }
 
 export async function getStructuredConversationComments(repo: RepoConfig, prNumber: number): Promise<ConversationComment[]> {

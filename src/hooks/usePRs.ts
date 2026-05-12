@@ -38,7 +38,7 @@ interface UsePRsResult {
   toggleSort: () => void;
   repoFilter: string | null;
   cycleRepoFilter: () => void;
-  updatePR: (repoName: string, number: number, patch: Partial<PR>) => void;
+  updatePR: (repoOwner: string, repoName: string, number: number, patch: Partial<PR>) => void;
 }
 
 export function usePRs(): UsePRsResult {
@@ -111,9 +111,9 @@ export function usePRs(): UsePRsResult {
     });
   }, []);
 
-  const updatePR = useCallback((repoName: string, number: number, patch: Partial<PR>) => {
+  const updatePR = useCallback((repoOwner: string, repoName: string, number: number, patch: Partial<PR>) => {
     setAllPRs(prev => prev.map(pr =>
-      pr.repo.repo === repoName && pr.number === number
+      pr.repo.owner === repoOwner && pr.repo.repo === repoName && pr.number === number
         ? { ...pr, ...patch }
         : pr
     ));
