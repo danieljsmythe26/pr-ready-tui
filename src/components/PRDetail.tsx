@@ -177,6 +177,21 @@ export function PRDetail({ pr, boxWidth, scrollOffset, viewportHeight = 20, left
     lines.push(<Text key="s4" dimColor>{lb + ' '.repeat(innerWidth) + '│'}</Text>);
   }
 
+  // Loading placeholder while the per-PR detail (review + conversation + commit dates)
+  // is being fetched lazily by useFetchPRDetail. Below this, the Review/Conversation
+  // sections render normally — they'll be empty until detail lands.
+  if (!pr.detailLoaded) {
+    const loadingText = 'Loading comments…';
+    lines.push(
+      <Text key="loading">
+        <Text dimColor>{lb + '  '}</Text>
+        <Text dimColor italic>{loadingText}</Text>
+        <Text dimColor>{pad(loadingText, innerWidth) + '│'}</Text>
+      </Text>
+    );
+    lines.push(<Text key="loading-s" dimColor>{lb + ' '.repeat(innerWidth) + '│'}</Text>);
+  }
+
   // Review Comments (sorted newest-first)
   const comments = [...(pr.reviewComments ?? [])].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

@@ -28,6 +28,7 @@ const basePr = (overrides: Partial<Omit<PR, 'score' | 'scoreBreakdown'>> = {}): 
   structuredConversationComments: [],
   commitDates: [],
   reviewVerdict: null,
+  detailLoaded: true,
   ...overrides,
 });
 
@@ -73,6 +74,26 @@ describe('computeScore', () => {
 
     const score = computeScore(pr);
     expect(score.total).toBe(0); // ci:0 + reviews:0 + conflicts:0 + staleness:0
+  });
+
+  it('OC-144: empty comment arrays produce base reviewDecision score with zero penalty', () => {
+    // Preliminary-score path: useFetchPRDetail hasn't loaded comments yet, so
+    // structuredConversationComments + commitDates are []. Must match the
+    // legacy "no bot comments" output — base reviewDecision score, no penalty.
+    setNow(fixedNow);
+    const pr = basePr({
+      statusCheckRollup: [{ name: 'ci', conclusion: 'SUCCESS', status: 'COMPLETED' }],
+      reviewDecision: 'APPROVED',
+      mergeable: 'MERGEABLE',
+      updatedAt: new Date(fixedNow - 2 * 60 * 60 * 1000).toISOString(),
+      structuredConversationComments: [],
+      commitDates: [],
+      detailLoaded: false,
+    });
+    const score = computeScore(pr);
+    expect(score.reviews).toBe(30);
+    expect(score.reviewPenalty).toBe(0);
+    expect(score.total).toBe(100);
   });
 
   it('handles mixed signals', () => {

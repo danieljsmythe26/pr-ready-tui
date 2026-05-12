@@ -10,7 +10,7 @@
  *   pr-ready --tui                        # Launch full TUI mode
  */
 
-import { listAllOpenPRs, getReviewComments, getConversationComments, getStructuredConversationComments, getCommitDates } from './github.js';
+import { listAllOpenPRs, getReviewComments, getStructuredConversationComments, getCommitDates, structuredToConversationString } from './github.js';
 import { computeScore } from './scoring.js';
 import type { PR, RepoConfig, ScoreBreakdown, ReviewComment } from './types.js';
 import { REPOS } from './types.js';
@@ -117,15 +117,15 @@ ${BOLD}Options:${RESET}
 }
 
 async function printPRDetail(pr: PR, repo: RepoConfig, json: boolean): Promise<void> {
-  const [reviewComments, conversationComments, structuredConversationComments, commitDates] = await Promise.all([
+  const [reviewComments, structuredConversationComments, commitDates] = await Promise.all([
     getReviewComments(repo, pr.number),
-    getConversationComments(repo, pr.number),
     getStructuredConversationComments(repo, pr.number),
     getCommitDates(repo, pr.number),
   ]);
+  const conversationComments = structuredToConversationString(structuredConversationComments);
 
   // Re-score with structured comment data for coverage ratio
-  const enriched = { ...pr, reviewComments, conversationComments, structuredConversationComments, commitDates };
+  const enriched = { ...pr, reviewComments, conversationComments, structuredConversationComments, commitDates, detailLoaded: true };
   const sb = computeScore(enriched);
   const scoredPr = { ...enriched, score: sb.total, scoreBreakdown: sb };
 

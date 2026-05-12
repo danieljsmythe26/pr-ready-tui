@@ -7,6 +7,7 @@ import { toggleLabel } from './github.js';
 import { usePRs } from './hooks/usePRs.js';
 import { useAgent } from './hooks/useAgent.js';
 import { useScroll } from './hooks/useScroll.js';
+import { useFetchPRDetail } from './hooks/useFetchPRDetail.js';
 import { Header } from './components/Header.js';
 import { PRList } from './components/PRList.js';
 import { PRDetail } from './components/PRDetail.js';
@@ -74,6 +75,12 @@ export function App() {
 
   const currentPR = prs[clampedIndex];
   const twoPane = BOX_WIDTH >= TWO_PANE_MIN;
+  // Only fetch detail when the user can actually see it: two-pane list mode keeps
+  // the right pane visible during list browsing, and full-screen detail view obviously
+  // shows it. Single-pane list mode never shows detail until the user enters it —
+  // fetching on every selection there would waste API calls.
+  const detailVisible = (view === 'list' && twoPane) || view === 'detail';
+  useFetchPRDetail(currentPR, updatePR, detailVisible);
   const leftWidth = twoPane ? Math.floor(BOX_WIDTH * 0.4) : BOX_WIDTH;
   const rightWidth = twoPane ? BOX_WIDTH - leftWidth : BOX_WIDTH;
 
@@ -169,7 +176,7 @@ export function App() {
             const newLabels = action === 'added'
               ? [...currentPR.labels, 'review']
               : currentPR.labels.filter(l => l !== 'review');
-            updatePR(currentPR.repo.repo, currentPR.number, { labels: newLabels });
+            updatePR(currentPR.repo.owner, currentPR.repo.repo, currentPR.number, { labels: newLabels });
             setLabelStatus({ text: action === 'added' ? 'Label added!' : 'Label removed!', color: 'green' });
             setTimeout(() => setLabelStatus(null), 2000);
           })
@@ -248,7 +255,7 @@ export function App() {
               const newLabels = action === 'added'
                 ? [...currentPR.labels, 'review']
                 : currentPR.labels.filter(l => l !== 'review');
-              updatePR(currentPR.repo.repo, currentPR.number, { labels: newLabels });
+              updatePR(currentPR.repo.owner, currentPR.repo.repo, currentPR.number, { labels: newLabels });
               setLabelStatus({ text: action === 'added' ? 'Label added!' : 'Label removed!', color: 'green' });
               setTimeout(() => setLabelStatus(null), 2000);
             })

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PR } from '../types.js';
 import { REPOS, isBotAuthor } from '../types.js';
-import { listAllOpenPRs, getReviewComments, getConversationComments, getStructuredConversationComments, getCommitDates } from '../github.js';
+import { listAllOpenPRs } from '../github.js';
 import { getLocalPRState } from '../localState.js';
 import { computeScore } from '../scoring.js';
+import { keyFor, getCached } from './prDetailCache.js';
 
 export type SortBy = 'score' | 'updated' | 'created';
 
@@ -37,7 +38,7 @@ interface UsePRsResult {
   toggleSort: () => void;
   repoFilter: string | null;
   cycleRepoFilter: () => void;
-  updatePR: (repoName: string, number: number, patch: Partial<PR>) => void;
+  updatePR: (repoOwner: string, repoName: string, number: number, patch: Partial<PR>) => void;
 }
 
 export function usePRs(): UsePRsResult {
@@ -54,20 +55,32 @@ export function usePRs(): UsePRsResult {
     try {
       const { prs: rawPRs, errors } = await listAllOpenPRs(REPOS);
       const localStates = await mapWithConcurrency(rawPRs, 4, pr => getLocalPRState(pr));
-      // Fetch review comments and conversation comments for all PRs in parallel
-      const withComments = await Promise.all(rawPRs.map(async (pr, index) => {
-        const [reviewComments, conversationComments, structuredConversationComments, commitDates] = await Promise.all([
-          getReviewComments(pr.repo, pr.number),
-          getConversationComments(pr.repo, pr.number),
-          getStructuredConversationComments(pr.repo, pr.number),
-          getCommitDates(pr.repo, pr.number),
-        ]);
+
+      // Per-PR detail (review comments, conversation, commit dates) is fetched lazily
+      // by useFetchPRDetail when the user selects a PR. The list-load scores PRs with
+      // empty detail arrays — base reviewDecision score, no comment penalty. The score
+      // is recomputed with detail once the lazy fetch lands.
+      //
+      // If the same PR was loaded earlier in this session and its updatedAt is unchanged,
+      // hydrate from the in-memory cache so a refresh doesn't visibly drop comment data.
+      const scored: PR[] = rawPRs.map((raw, index) => {
         const localState = localStates[index]!;
-        return { ...pr, reviewComments, conversationComments, structuredConversationComments, commitDates, localState, reviewVerdict: null as string | null };
-      }));
-      const scored: PR[] = withComments.map(pr => {
-        const scoreBreakdown = computeScore(pr);
-        return { ...pr, score: scoreBreakdown.total, scoreBreakdown };
+        const cached = getCached(keyFor(raw), raw.updatedAt);
+        const detail = cached ?? {
+          reviewComments: [],
+          structuredConversationComments: [],
+          commitDates: [],
+          conversationComments: '',
+        };
+        const merged = {
+          ...raw,
+          ...detail,
+          localState,
+          reviewVerdict: null as string | null,
+          detailLoaded: cached !== undefined,
+        };
+        const scoreBreakdown = computeScore(merged);
+        return { ...merged, score: scoreBreakdown.total, scoreBreakdown };
       });
       setAllPRs(scored);
       if (errors.length > 0) {
@@ -98,9 +111,9 @@ export function usePRs(): UsePRsResult {
     });
   }, []);
 
-  const updatePR = useCallback((repoName: string, number: number, patch: Partial<PR>) => {
+  const updatePR = useCallback((repoOwner: string, repoName: string, number: number, patch: Partial<PR>) => {
     setAllPRs(prev => prev.map(pr =>
-      pr.repo.repo === repoName && pr.number === number
+      pr.repo.owner === repoOwner && pr.repo.repo === repoName && pr.number === number
         ? { ...pr, ...patch }
         : pr
     ));

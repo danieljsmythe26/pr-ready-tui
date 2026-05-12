@@ -139,6 +139,7 @@ export async function listOpenPRs(repo: RepoConfig): Promise<Omit<PR, 'score' | 
     structuredConversationComments: [],
     commitDates: [],
     reviewVerdict: null,
+    detailLoaded: false,
   }));
 }
 
@@ -206,28 +207,16 @@ export async function toggleLabel(
   return { action: hasLabel ? 'removed' : 'added' };
 }
 
-export async function getConversationComments(repo: RepoConfig, prNumber: number): Promise<string> {
-  try {
-    // Use REST API instead of `gh pr view --comments` which breaks due to
-    // GraphQL Projects Classic deprecation warning returning empty results.
-    return await ghRaw([
-      'api', '--paginate',
-      `repos/${repo.owner}/${repo.repo}/issues/${prNumber}/comments`,
-      '--jq',
-      '.[] | "\\(.user.login) (\\(.created_at)):\\n\\(.body)\\n---"',
-    ]);
-  } catch {
-    // Fallback to gh pr view --comments
-    try {
-      return await ghRaw([
-        'pr', 'view', String(prNumber),
-        '--repo', `${repo.owner}/${repo.repo}`,
-        '--comments',
-      ]);
-    } catch {
-      return '';
-    }
-  }
+/**
+ * Render structured conversation comments into the `\n---\n`-delimited text format
+ * that `PRDetail` parses and `cli.ts` prints. Shared so both consumers stay in sync
+ * after `getConversationComments` was removed (it duplicated the REST call that
+ * `getStructuredConversationComments` already makes).
+ */
+export function structuredToConversationString(comments: ConversationComment[]): string {
+  // Separator must be exactly `\n---\n` between blocks with no trailing `---`,
+  // so PRDetail's `.split('\n---\n')` parser yields clean blocks.
+  return comments.map(c => `${c.author} (${c.createdAt}):\n${c.body}`).join('\n---\n');
 }
 
 export async function getStructuredConversationComments(repo: RepoConfig, prNumber: number): Promise<ConversationComment[]> {

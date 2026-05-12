@@ -99,7 +99,13 @@ export function PRCard({ pr, selected, boxWidth, condensed }: PRCardProps) {
   const truncTitle = cliTruncate(pr.title, titleMax, { truncationCharacter: '~' }).padEnd(titleMax);
   const title = draftTag + truncTitle;
 
-  const prefix = selected ? '\u258C ' : '  ';
+  // `\u2248` marks a preliminary score: per-PR detail (comments/commits) hasn't been
+  // fetched yet, so the comment-addressed penalty isn't applied. Two-char prefix
+  // keeps column alignment with the non-preliminary case.
+  const preliminary = !pr.detailLoaded;
+  const prefix = selected
+    ? (preliminary ? '\u258C\u2248' : '\u258C ')
+    : (preliminary ? ' \u2248' : '  ');
 
   const authorPart = condensed ? '' : ` ${author}`;
   const rowText = `${prefix}${scoreStr} ${repoShort} ${numberStr} ${title}${authorPart} ${age} ${ci} ${review} ${merge} ${locStr}`;
