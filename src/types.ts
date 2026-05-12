@@ -84,6 +84,10 @@ export interface PR {
   commitDates: { author: string; date: string }[];
   reviewVerdict: string | null;
   localState?: LocalPRState;
+  // Detail (reviewComments/conversation/commitDates) is fetched lazily via useFetchPRDetail
+  // when the PR is selected in the detail pane. False on initial list load; true after
+  // the per-PR detail fetch completes. Drives the `≈` preliminary-score marker in PRCard.
+  detailLoaded: boolean;
 }
 
 export type LocalPRMarker = '-' | 'L' | 'W' | 'W*' | 'L↑' | 'L↓' | 'L↕';

@@ -7,6 +7,7 @@ import { toggleLabel } from './github.js';
 import { usePRs } from './hooks/usePRs.js';
 import { useAgent } from './hooks/useAgent.js';
 import { useScroll } from './hooks/useScroll.js';
+import { useFetchPRDetail } from './hooks/useFetchPRDetail.js';
 import { Header } from './components/Header.js';
 import { PRList } from './components/PRList.js';
 import { PRDetail } from './components/PRDetail.js';
@@ -73,6 +74,7 @@ export function App() {
   const isTTY = process.stdin.isTTY ?? false;
 
   const currentPR = prs[clampedIndex];
+  useFetchPRDetail(currentPR, updatePR);
   const twoPane = BOX_WIDTH >= TWO_PANE_MIN;
   const leftWidth = twoPane ? Math.floor(BOX_WIDTH * 0.4) : BOX_WIDTH;
   const rightWidth = twoPane ? BOX_WIDTH - leftWidth : BOX_WIDTH;
