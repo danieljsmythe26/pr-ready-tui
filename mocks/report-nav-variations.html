@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Report Nav Variations</title>
+  <style>
+    :root {
+      --page: #eef1f4;
+      --surface: #fff;
+      --bar: #f6f8fa;
+      --ink: #1f2328;
+      --muted: #57606a;
+      --line: #d0d7de;
+      --blue: #0969da;
+      --blue-soft: #ddf4ff;
+      --blue-line: #54aeff;
+      --green: #1a7f37;
+      --green-soft: #dafbe1;
+      --amber: #9a6700;
+      --amber-soft: #fff8c5;
+      --shadow: 0 10px 24px rgba(31, 35, 40, .08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .intro {
+      max-width: 880px;
+      margin: 0 0 20px;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .card-head h2 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .card-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pick {
+      flex: 0 0 auto;
+      align-self: center;
+      min-height: 32px;
+      padding: 7px 10px;
+      border: 1px solid var(--blue-line);
+      border-radius: 6px;
+      background: var(--blue-soft);
+      color: #0550ae;
+      font-weight: 700;
+    }
+
+    .previews {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 18px;
+      padding: 18px;
+      background:
+        linear-gradient(#f8fafc 31px, transparent 31px),
+        linear-gradient(90deg, rgba(208, 215, 222, .35) 1px, transparent 1px);
+      background-size: 100% 32px, 32px 100%;
+    }
+
+    .preview-title {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .report {
+      overflow: hidden;
+      min-height: 220px;
+      background: #fff;
+      border: 1px solid #c9d1d9;
+      border-radius: 6px;
+    }
+
+    .phone .report {
+      width: 360px;
+      min-height: 300px;
+      margin: 0 auto;
+      padding-top: 8px;
+      background: #111827;
+      border-radius: 18px;
+      box-shadow: inset 0 0 0 8px #111827;
+    }
+
+    .phone-screen {
+      overflow: hidden;
+      height: 286px;
+      margin: 0 8px 8px;
+      background: #fff;
+      border-radius: 11px;
+    }
+
+    .fake-content {
+      padding: 18px 18px 26px;
+    }
+
+    .phone .fake-content {
+      padding: 12px;
+    }
+
+    .fake-content h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .phone .fake-content h3 {
+      font-size: 16px;
+    }
+
+    .fake-line {
+      height: 10px;
+      margin: 9px 0;
+      border-radius: 999px;
+      background: #eaeef2;
+    }
+
+    .fake-line.med { width: 68%; }
+    .fake-line.short { width: 42%; }
+
+    .nav {
+      border-bottom: 1px solid var(--line);
+      background: var(--bar);
+    }
+
+    .id-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .run {
+      color: var(--blue);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .project {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--muted);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 22px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .badge.full {
+      border: 1px solid #4ac26b;
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .badge.partial {
+      border: 1px solid #d4a72c;
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .btn,
+    .menu {
+      appearance: none;
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .btn.full {
+      border-color: #4ac26b;
+      background: var(--green-soft);
+      color: #116329;
+    }
+
+    .btn.project {
+      border-color: var(--blue-line);
+      background: var(--blue-soft);
+      color: #0550ae;
+    }
+
+    .btn.seq {
+      background: #fff;
+    }
+
+    .menu {
+      margin-left: auto;
+      min-width: 118px;
+      text-align: left;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* Variation 1: primary + more */
+    .v1 .primary-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 10px;
+      overflow-x: auto;
+    }
+
+    .v1 .more-pop {
+      display: grid;
+      gap: 7px;
+      width: 250px;
+      margin: 0 10px 10px auto;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 8px 16px rgba(31, 35, 40, .12);
+    }
+
+    .phone .v1 .id-row {
+      flex-wrap: wrap;
+    }
+
+    .phone .v1 .menu {
+      width: 100%;
+      margin-left: 0;
+    }
+
+    .phone .v1 .primary-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: visible;
+    }
+
+    .phone .v1 .more-pop {
+      width: auto;
+      margin: 0 8px 8px;
+    }
+
+    /* Variation 2: stacked lanes */
+    .lanes {
+      display: grid;
+      gap: 0;
+    }
+
+    .lane {
+      display: grid;
+      grid-template-columns: 136px 1fr 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .lane:last-child {
+      border-bottom: 0;
+    }
+
+    .lane .btn {
+      width: 100%;
+      text-align: center;
+    }
+
+    .phone .lane {
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 8px;
+    }
+
+    .phone .lane .label {
+      grid-column: 1 / -1;
+    }
+
+    /* Variation 3: accordion */
+    .accordion {
+      display: grid;
+      gap: 0;
+    }
+
+    .acc-section {
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .acc-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      background: var(--bar);
+    }
+
+    .acc-head .label {
+      flex: 1;
+    }
+
+    .acc-body {
+      display: flex;
+      gap: 7px;
+      padding: 0 10px 9px;
+      background: var(--bar);
+    }
+
+    .phone .acc-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 0 8px 8px;
+    }
+
+    /* Variation 4: arrow pad */
+    .arrow-shell {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      gap: 0;
+      min-height: 132px;
+    }
+
+    .arrow-id {
+      display: grid;
+      align-content: start;
+      gap: 7px;
+      padding: 12px;
+      border-right: 1px solid var(--line);
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
+    .arrow-id .project {
+      color: #cbd5e1;
+    }
+
+    .arrow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+
+    .arrow-col {
+      display: grid;
+      grid-template-rows: auto 1fr 1fr;
+      border-right: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .arrow-col:last-child {
+      border-right: 0;
+    }
+
+    .arrow-head {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bar);
+      text-align: center;
+    }
+
+    .arrow-head strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .arrow-head span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .arrow-link {
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      min-height: 42px;
+      padding: 7px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .arrow-link:last-child {
+      border-bottom: 0;
+    }
+
+    .arrow {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .arrow-link.full {
+      background: var(--green-soft);
+      color: #116329;
+    }
+
+    .arrow-link.project {
+      background: var(--blue-soft);
+      color: #0550ae;
+    }
+
+    .phone .arrow-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .phone .arrow-id {
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .phone .arrow-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .phone .arrow-col {
+      grid-template-columns: 78px 1fr 1fr;
+      grid-template-rows: 1fr;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .phone .arrow-head {
+      display: grid;
+      align-content: center;
+      border-right: 1px solid var(--line);
+      border-bottom: 0;
+    }
+
+    .phone .arrow-link {
+      min-height: 50px;
+      border-right: 1px solid var(--line);
+      border-bottom: 0;
+    }
+
+    .phone .arrow-link:last-child {
+      border-right: 0;
+    }
+
+    @media (max-width: 980px) {
+      .previews {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      main {
+        padding: 12px;
+      }
+
+      .card-head {
+        display: block;
+      }
+
+      .pick {
+        margin-top: 10px;
+      }
+
+      .previews {
+        padding: 10px;
+      }
+
+      .phone .report {
+        width: 100%;
+        max-width: 360px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Report Nav Variations</h1>
+    <p class="intro">
+      Four revised options after separating the navigation model into full runs, same-project runs,
+      and the raw sequential timeline. The mobile preview is shown next to desktop for each option.
+    </p>
+
+    <section class="grid">
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2>Variation 1: Primary + More</h2>
+            <p>Full and same-project controls are visible. Sequential timeline lives in the secondary menu.</p>
+          </div>
+          <button class="pick" onclick="copyPick('Variation 1')">Pick Variation 1</button>
+        </div>
+        <div class="previews">
+          <div>
+            <p class="preview-title">Desktop</p>
+            <div class="report v1">
+              <nav class="nav">
+                <div class="id-row">
+                  <span class="run">Run #1293</span>
+                  <span class="badge full">Full</span>
+                  <span class="project">5-furlong-close-4m</span>
+                  <button class="menu">Jump to run...</button>
+                </div>
+                <div class="primary-row">
+                  <button class="btn full">← Prev full #1286</button>
+                  <button class="btn full">Next full #1296 →</button>
+                  <button class="btn project">← Prev same #1292 partial</button>
+                  <button class="btn project">Next same #1294 partial →</button>
+                  <button class="btn">More ▾</button>
+                </div>
+                <div class="more-pop">
+                  <span class="label">Sequential timeline</span>
+                  <button class="btn seq">← Prev run #1292 partial</button>
+                  <button class="btn seq">Next run #1294 partial →</button>
+                </div>
+              </nav>
+              <div class="fake-content">
+                <h3>1. Run Analysis</h3>
+                <div class="fake-line med"></div>
+                <div class="fake-line"></div>
+                <div class="fake-line short"></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <p class="preview-title">Mobile</p>
+            <div class="report v1">
+              <div class="phone-screen">
+                <nav class="nav">
+                  <div class="id-row">
+                    <span class="run">#1293</span>
+                    <span class="badge full">Full</span>
+                    <span class="project">5-furlong-close-4m</span>
+                    <button class="menu">Jump...</button>
+                  </div>
+                  <div class="primary-row">
+                    <button class="btn full">← Full #1286</button>
+                    <button class="btn full">Full #1296 →</button>
+                    <button class="btn project">← Same #1292 P</button>
+                    <button class="btn project">Same #1294 P →</button>
+                  </div>
+                  <div class="more-pop">
+                    <span class="label">Timeline</span>
+                    <button class="btn seq">← Run #1292 P</button>
+                    <button class="btn seq">Run #1294 P →</button>
+                  </div>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2>Variation 2: Stacked Lanes</h2>
+            <p>All six actions are visible, grouped into three rows. This is the clearest conventional layout.</p>
+          </div>
+          <button class="pick" onclick="copyPick('Variation 2')">Pick Variation 2</button>
+        </div>
+        <div class="previews">
+          <div>
+            <p class="preview-title">Desktop</p>
+            <div class="report v2">
+              <nav class="nav">
+                <div class="id-row">
+                  <span class="run">Run #1293</span>
+                  <span class="badge full">Full</span>
+                  <span class="project">5-furlong-close-4m</span>
+                  <button class="menu">Jump to run...</button>
+                </div>
+                <div class="lanes">
+                  <div class="lane">
+                    <span class="label">Full runs</span>
+                    <button class="btn full">← Prev full #1286</button>
+                    <button class="btn full">Next full #1296 →</button>
+                  </div>
+                  <div class="lane">
+                    <span class="label">Same project</span>
+                    <button class="btn project">← Prev same #1292 partial</button>
+                    <button class="btn project">Next same #1294 partial →</button>
+                  </div>
+                  <div class="lane">
+                    <span class="label">Timeline</span>
+                    <button class="btn seq">← Prev run #1292 partial</button>
+                    <button class="btn seq">Next run #1294 partial →</button>
+                  </div>
+                </div>
+              </nav>
+              <div class="fake-content">
+                <h3>1. Run Analysis</h3>
+                <div class="fake-line med"></div>
+                <div class="fake-line"></div>
+                <div class="fake-line short"></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <p class="preview-title">Mobile</p>
+            <div class="report v2">
+              <div class="phone-screen">
+                <nav class="nav">
+                  <div class="id-row">
+                    <span class="run">#1293</span>
+                    <span class="badge full">Full</span>
+                    <span class="project">5-furlong-close-4m</span>
+                    <button class="menu">Jump...</button>
+                  </div>
+                  <div class="lanes">
+                    <div class="lane">
+                      <span class="label">Full runs</span>
+                      <button class="btn full">← #1286</button>
+                      <button class="btn full">#1296 →</button>
+                    </div>
+                    <div class="lane">
+                      <span class="label">Same project</span>
+                      <button class="btn project">← #1292 P</button>
+                      <button class="btn project">#1294 P →</button>
+                    </div>
+                    <div class="lane">
+                      <span class="label">Timeline</span>
+                      <button class="btn seq">← #1292 P</button>
+                      <button class="btn seq">#1294 P →</button>
+                    </div>
+                  </div>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2>Variation 3: Accordion</h2>
+            <p>Expandable sections. Works well on mobile if one lane is usually enough at a time.</p>
+          </div>
+          <button class="pick" onclick="copyPick('Variation 3')">Pick Variation 3</button>
+        </div>
+        <div class="previews">
+          <div>
+            <p class="preview-title">Desktop</p>
+            <div class="report v3">
+              <nav class="nav">
+                <div class="id-row">
+                  <span class="run">Run #1293</span>
+                  <span class="badge full">Full</span>
+                  <span class="project">5-furlong-close-4m</span>
+                  <button class="menu">Jump to run...</button>
+                </div>
+                <div class="accordion">
+                  <section class="acc-section">
+                    <div class="acc-head"><span class="label">Full runs</span><span class="hint">Comparable evals</span><span>▾</span></div>
+                    <div class="acc-body">
+                      <button class="btn full">← Prev full #1286</button>
+                      <button class="btn full">Next full #1296 →</button>
+                    </div>
+                  </section>
+                  <section class="acc-section">
+                    <div class="acc-head"><span class="label">Same project</span><span class="hint">Stay on 5FM</span><span>▾</span></div>
+                    <div class="acc-body">
+                      <button class="btn project">← Prev same #1292 partial</button>
+                      <button class="btn project">Next same #1294 partial →</button>
+                    </div>
+                  </section>
+                  <section class="acc-section">
+                    <div class="acc-head"><span class="label">Timeline</span><span class="hint">Raw sequence</span><span>▸</span></div>
+                  </section>
+                </div>
+              </nav>
+              <div class="fake-content">
+                <h3>1. Run Analysis</h3>
+                <div class="fake-line med"></div>
+                <div class="fake-line"></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <p class="preview-title">Mobile</p>
+            <div class="report v3">
+              <div class="phone-screen">
+                <nav class="nav">
+                  <div class="id-row">
+                    <span class="run">#1293</span>
+                    <span class="badge full">Full</span>
+                    <span class="project">5-furlong-close-4m</span>
+                    <button class="menu">Jump...</button>
+                  </div>
+                  <div class="accordion">
+                    <section class="acc-section">
+                      <div class="acc-head"><span class="label">Full runs</span><span>▾</span></div>
+                      <div class="acc-body">
+                        <button class="btn full">← #1286</button>
+                        <button class="btn full">#1296 →</button>
+                      </div>
+                    </section>
+                    <section class="acc-section">
+                      <div class="acc-head"><span class="label">Same project</span><span>▾</span></div>
+                      <div class="acc-body">
+                        <button class="btn project">← #1292 P</button>
+                        <button class="btn project">#1294 P →</button>
+                      </div>
+                    </section>
+                    <section class="acc-section">
+                      <div class="acc-head"><span class="label">Timeline</span><span>▸</span></div>
+                    </section>
+                  </div>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2>Variation 4: Arrow Pad</h2>
+            <p>Creative version: columns for Full, 5FM, and All. Up/down arrows replace wordy buttons.</p>
+          </div>
+          <button class="pick" onclick="copyPick('Variation 4')">Pick Variation 4</button>
+        </div>
+        <div class="previews">
+          <div>
+            <p class="preview-title">Desktop</p>
+            <div class="report v4">
+              <nav class="nav">
+                <div class="arrow-shell">
+                  <div class="arrow-id">
+                    <span class="run">Run #1293</span>
+                    <span class="badge full">Full</span>
+                    <span class="project">5-furlong-close-4m</span>
+                    <button class="menu">Jump...</button>
+                  </div>
+                  <div class="arrow-grid">
+                    <section class="arrow-col">
+                      <div class="arrow-head"><strong>Full</strong><span>comparable</span></div>
+                      <button class="arrow-link full"><span class="arrow">↑</span><span>#1296</span></button>
+                      <button class="arrow-link full"><span class="arrow">↓</span><span>#1286</span></button>
+                    </section>
+                    <section class="arrow-col">
+                      <div class="arrow-head"><strong>5FM</strong><span>same project</span></div>
+                      <button class="arrow-link project"><span class="arrow">↑</span><span>#1294 partial</span></button>
+                      <button class="arrow-link project"><span class="arrow">↓</span><span>#1292 partial</span></button>
+                    </section>
+                    <section class="arrow-col">
+                      <div class="arrow-head"><strong>All</strong><span>timeline</span></div>
+                      <button class="arrow-link"><span class="arrow">↑</span><span>#1294 partial</span></button>
+                      <button class="arrow-link"><span class="arrow">↓</span><span>#1292 partial</span></button>
+                    </section>
+                  </div>
+                </div>
+              </nav>
+              <div class="fake-content">
+                <h3>1. Run Analysis</h3>
+                <div class="fake-line med"></div>
+                <div class="fake-line"></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <p class="preview-title">Mobile</p>
+            <div class="report v4">
+              <div class="phone-screen">
+                <nav class="nav">
+                  <div class="arrow-shell">
+                    <div class="arrow-id">
+                      <span class="run">#1293</span>
+                      <span class="badge full">Full</span>
+                      <span class="project">5-furlong-close-4m</span>
+                      <button class="menu">Jump...</button>
+                    </div>
+                    <div class="arrow-grid">
+                      <section class="arrow-col">
+                        <div class="arrow-head"><strong>Full</strong></div>
+                        <button class="arrow-link full"><span class="arrow">↑</span><span>#1296</span></button>
+                        <button class="arrow-link full"><span class="arrow">↓</span><span>#1286</span></button>
+                      </section>
+                      <section class="arrow-col">
+                        <div class="arrow-head"><strong>5FM</strong></div>
+                        <button class="arrow-link project"><span class="arrow">↑</span><span>#1294 P</span></button>
+                        <button class="arrow-link project"><span class="arrow">↓</span><span>#1292 P</span></button>
+                      </section>
+                      <section class="arrow-col">
+                        <div class="arrow-head"><strong>All</strong></div>
+                        <button class="arrow-link"><span class="arrow">↑</span><span>#1294 P</span></button>
+                        <button class="arrow-link"><span class="arrow">↓</span><span>#1292 P</span></button>
+                      </section>
+                    </div>
+                  </div>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    function copyPick(name) {
+      const text = "I select " + name;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          alert("Copied: " + text);
+        }, function () {
+          alert(text);
+        });
+      } else {
+        alert(text);
+      }
+    }
+  </script>
+</body>
+</html>
